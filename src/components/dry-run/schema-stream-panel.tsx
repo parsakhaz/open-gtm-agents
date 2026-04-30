@@ -5,12 +5,18 @@ import { CheckCircle2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { schemaSections } from "@/lib/dry-run/demo-data";
 
-export function SchemaStreamPanel({ visibleIds }: { visibleIds: string[] }) {
+export function SchemaStreamPanel({
+  visibleIds,
+  compact = false,
+}: {
+  visibleIds: string[];
+  compact?: boolean;
+}) {
   const visible = schemaSections.filter((section) => visibleIds.includes(section.id));
   const next = schemaSections.find((section) => !visibleIds.includes(section.id));
 
   return (
-    <div className="flex h-full min-h-[560px] flex-col rounded-lg border bg-white/80 shadow-sm backdrop-blur">
+    <div className={`flex h-full flex-col rounded-lg border bg-white/80 shadow-sm backdrop-blur ${compact ? "min-h-[170px]" : "min-h-[560px]"}`}>
       <div className="border-b p-4">
         <div className="flex items-center justify-between">
           <div>
@@ -23,7 +29,7 @@ export function SchemaStreamPanel({ visibleIds }: { visibleIds: string[] }) {
           </Badge>
         </div>
       </div>
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+      <div className={`min-h-0 flex-1 gap-3 overflow-y-auto p-4 ${compact ? "grid md:grid-cols-2" : "space-y-3"}`}>
         <AnimatePresence initial={false}>
           {visible.map((section) => (
             <motion.div

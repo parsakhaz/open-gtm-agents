@@ -6,7 +6,6 @@ import {
   Bell,
   CheckCircle2,
   Clock3,
-  FileCheck2,
   Eye,
   Globe2,
   Mail,
@@ -146,7 +145,10 @@ export default function Home() {
                   className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_430px]"
                 >
                   {state.onboardingStep !== "analysis" ? (
-                    <ConnectingPanel step={state.onboardingStep ?? "connecting"} url={url} />
+                    <ConnectingPanel
+                      step={state.onboardingStep ?? "connecting"}
+                      visibleIds={state.schemaIds}
+                    />
                   ) : (
                     <>
                       <div className="rounded-xl border bg-[#fff8f3] p-6 shadow-sm">
@@ -194,76 +196,104 @@ export default function Home() {
 
 function ConnectingPanel({
   step,
-  url,
+  visibleIds,
 }: {
   step: "connecting" | "trust" | "content" | "analysis";
-  url: string;
+  visibleIds: string[];
 }) {
   const steps = [
-    { id: "connecting", label: "URL clarity", icon: Globe2 },
-    { id: "trust", label: "Trust signals", icon: ShieldIcon },
-    { id: "content", label: "Content", icon: FileCheck2 },
+    { id: "connecting", label: "Navigation" },
+    { id: "trust", label: "Hero" },
+    { id: "content", label: "Building your report" },
   ] as const;
   const activeIndex = Math.max(0, steps.findIndex((item) => item.id === step));
 
   return (
-    <div className="col-span-full grid min-h-[650px] place-items-center rounded-xl border bg-[#fff8f3] p-8 shadow-sm">
+    <div className="col-span-full rounded-xl border bg-[#fff8f3] p-8 shadow-sm">
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-2xl text-center"
+        className="mx-auto w-full max-w-5xl"
       >
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm">
-          <Radar className="h-8 w-8 text-[#2e8b64]" />
-        </div>
-        <h2 className="text-4xl font-semibold tracking-normal">salonagent.ai</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Connecting to {url.replace(/^https?:\/\//, "")}</p>
-
-        <div className="mx-auto mt-9 grid max-w-xl grid-cols-3 gap-4">
-          {steps.map((item, index) => {
-            const Icon = item.icon;
-            const active = index === activeIndex;
-            const done = index < activeIndex;
-
-            return (
-              <motion.div
-                key={item.id}
-                animate={{
-                  opacity: active || done ? 1 : 0.35,
-                  scale: active ? 1.04 : 1,
-                }}
-                className={`rounded-xl border bg-white p-4 shadow-sm ${active ? "border-[#d66b61]" : ""}`}
-              >
-                <div
-                  className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full ${
-                    done ? "bg-primary text-primary-foreground" : active ? "bg-[#fff0eb] text-[#b24b42]" : "bg-muted"
-                  }`}
-                >
-                  {done ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+        <div className="grid min-h-[500px] items-center gap-8 lg:grid-cols-[minmax(0,1fr)_260px]">
+          <div className="overflow-hidden rounded-lg border border-[#e8ded7] bg-[#fdfaf5] shadow-md">
+            <div className="flex h-10 items-center gap-3 border-b bg-[#f6f0ea] px-4">
+              <div className="flex gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#ff6b5f]" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#f3bf4f]" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#5ecf81]" />
+              </div>
+              <div className="flex min-w-0 flex-1 items-center justify-center rounded-md bg-white px-3 py-1.5 text-[11px] text-muted-foreground shadow-sm">
+                salonagent.ai
+              </div>
+            </div>
+            <div className="grid h-[320px] place-items-center bg-[#fffaf4] px-10 text-center">
+              <div>
+                <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm">
+                  <Radar className="h-6 w-6 text-[#2e8b64]" />
                 </div>
-                <div className="mt-3 text-xs font-semibold">{item.label}</div>
-              </motion.div>
-            );
-          })}
+                <h2 className="text-3xl font-semibold tracking-normal">salonagent.ai</h2>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {step === "connecting" && "Connecting to salonagent.ai"}
+                  {step === "trust" && "Checking trust signals"}
+                  {step === "content" && "Preparing content for analysis"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="relative">
+            <p className="mb-6 text-sm leading-6 text-[#6e5a55] italic">
+              &ldquo;Most salons don&apos;t lose clients. They just couldn&apos;t answer the phone.&rdquo;
+            </p>
+            <div className="absolute top-14 bottom-0 left-[11px] w-px bg-[#e7b2a9]" />
+            <div className="space-y-5">
+              {steps.map((item, index) => {
+                const active = index === activeIndex;
+                const done = index < activeIndex;
+
+                return (
+                  <div key={item.id} className="relative flex gap-3">
+                    <div
+                      className={`z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-[#fff8f3] ${
+                        active
+                          ? "border-[#db5f58] bg-[#db5f58] text-white"
+                          : done
+                            ? "border-[#db5f58] bg-[#fff0eb] text-[#db5f58]"
+                            : "border-[#e7b2a9] text-[#e7b2a9]"
+                      }`}
+                    >
+                      {done ? <CheckCircle2 className="h-3 w-3" /> : <span className="h-2 w-2 rounded-full bg-current" />}
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-bold tracking-[0.08em] text-[#3c2b27] uppercase">
+                        {item.label}
+                      </div>
+                      {active && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="mt-1 text-xs text-[#8a6b62]"
+                        >
+                          {step === "content"
+                            ? "Synthesizing page content into GTM context..."
+                            : "Preparing the next step..."}
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-9 text-sm text-muted-foreground"
-        >
-          {step === "connecting" && "Opening the landing page and preparing a desktop preview."}
-          {step === "trust" && "Checking source quality, redirects, and visible business context."}
-          {step === "content" && "Loading page content before the agent starts reading sections."}
-        </motion.div>
+        <div className="mx-auto mt-6 max-w-5xl">
+          <SchemaStreamPanel visibleIds={visibleIds} compact />
+        </div>
       </motion.div>
     </div>
   );
-}
-
-function ShieldIcon({ className }: { className?: string }) {
-  return <CheckCircle2 className={className} />;
 }
 
 function ValuePill({
