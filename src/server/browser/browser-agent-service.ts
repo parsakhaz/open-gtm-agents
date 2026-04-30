@@ -1,9 +1,17 @@
 import type {
   BrowserCommand,
+  BrowserMissionRequest,
   BrowserResult,
   BrowserRunEvent,
+  CommandResult,
   PostCommentRequest,
 } from "@/lib/browser-relay/types";
+import { debugLog, durationMs, previewForLog } from "@/lib/debug-log";
+import {
+  buildMissionUserMessage,
+  buildPostCommentMission,
+  defaultStructuredHandoff,
+} from "./browser-mission";
 import {
   browserToolNames,
   isBrowserCommandName,
@@ -13,7 +21,7 @@ import {
   type BrowserRelayTransport,
   localBrowserRelay,
 } from "./local-browser-relay";
-import { BROWSER_POST_COMMENT_SYSTEM_PROMPT } from "./prompts";
+import { BROWSER_MISSION_SYSTEM_PROMPT } from "./prompts";
 
 type EmitBrowserEvent = (event: BrowserRunEvent) => void;
 
@@ -32,13 +40,32 @@ type OpenAIResponsesResponse = {
   output?: ResponseOutputItem[];
 };
 
-const MAX_TURNS = 12;
+const DEFAULT_MAX_TURNS = 20;
+const SAME_ERROR_LIMIT = 3;
+const NO_PROGRESS_LIMIT = 6;
 
 export class BrowserAgentService {
   constructor(private relay: BrowserRelayTransport = localBrowserRelay) {}
 
   async postComment(input: PostCommentRequest, emit: EmitBrowserEvent) {
+    return this.runMission(buildPostCommentMission(input), emit);
+  }
+
+  async runMission(mission: BrowserMissionRequest, emit: EmitBrowserEvent) {
+    const runId = crypto.randomUUID();
+    const startedAt = Date.now();
+    debugLog("browser-agent", "mission start", {
+      runId,
+      mission: mission.mission,
+      startUrl: mission.startUrl,
+      exactTextLength: mission.exactTextToSubmit?.length ?? 0,
+      opportunityId: mission.opportunityId,
+      model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
+      reasoningEffort: "high",
+    });
+
     const status = await this.safeStatus();
+    debugLog("browser-agent", "relay status", { runId, status });
     emit({
       type: "browser_status",
       connected: status.connected,
@@ -49,6 +76,7 @@ export class BrowserAgentService {
     });
 
     if (!status.connected) {
+      debugLog("browser-agent", "blocked: relay disconnected", { runId }, "warn");
       emit({
         type: "browser_error",
         message:
@@ -59,6 +87,7 @@ export class BrowserAgentService {
     }
 
     if (!process.env.OPENAI_API_KEY) {
+      debugLog("browser-agent", "blocked: missing OPENAI_API_KEY", { runId }, "warn");
       emit({
         type: "browser_error",
         message: "OPENAI_API_KEY is required for Post now.",
@@ -67,7 +96,16 @@ export class BrowserAgentService {
       return;
     }
 
-    const result = await this.runOpenAIToolLoop(input, emit);
+    const result = await this.runOpenAIToolLoop(mission, emit, runId);
+    debugLog("browser-agent", "mission done", {
+      runId,
+      durationMs: durationMs(startedAt),
+      success: result.success,
+      summary: result.summary,
+      actionsTaken: result.actionsTaken,
+      error: result.error,
+      needsUserInput: result.needsUserInput,
+    }, result.success ? "info" : "warn");
     emit({
       type: "browser_done",
       result,
@@ -78,37 +116,80 @@ export class BrowserAgentService {
   private async safeStatus() {
     try {
       return await this.relay.getStatus();
-    } catch {
+    } catch (error) {
+      debugLog("browser-agent", "relay status failed", {
+        error: error instanceof Error ? error.message : String(error),
+      }, "warn");
       return { enabled: false, connected: false };
     }
   }
 
   private async runOpenAIToolLoop(
-    input: PostCommentRequest,
+    mission: BrowserMissionRequest,
     emit: EmitBrowserEvent,
+    runId: string,
   ): Promise<BrowserResult> {
     const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
     let previousResponseId: string | undefined;
     let nextInput: unknown = [
       {
         role: "system",
-        content: BROWSER_POST_COMMENT_SYSTEM_PROMPT,
+        content: BROWSER_MISSION_SYSTEM_PROMPT,
       },
       {
         role: "user",
-        content: buildUserTask(input),
+        content: buildMissionUserMessage(mission),
       },
     ];
     const actionsTaken: string[] = [];
     let repeatedErrors = 0;
+    let lastError: string | undefined;
+    let sameErrorCount = 0;
+    let lastUrl: string | undefined;
+    let mutationsSinceUrlChange = 0;
+    const maxTurns = mission.maxTurns ?? DEFAULT_MAX_TURNS;
 
-    for (let turn = 0; turn < MAX_TURNS; turn++) {
-      const response = await this.createResponse(model, nextInput, previousResponseId);
+    debugLog("browser-agent", "tool loop start", {
+      runId,
+      model,
+      maxTurns,
+      targetUrl: mission.startUrl,
+      exactTextLength: mission.exactTextToSubmit?.length ?? 0,
+    });
+
+    for (let turn = 0; turn < maxTurns; turn++) {
+      emit({
+        type: "browser_agent_step",
+        message: `Browser agent turn ${turn + 1}/${maxTurns}`,
+        createdAt: new Date().toISOString(),
+      });
+      debugLog("browser-agent", "model turn start", {
+        runId,
+        turn: turn + 1,
+        previousResponseId,
+        input: previewForLog(nextInput, 1_500),
+      });
+      const response = await this.createResponse(
+        model,
+        nextInput,
+        previousResponseId,
+        emit,
+      );
       previousResponseId = response.id;
 
       const calls = (response.output ?? []).filter(
         (item) => item.type === "function_call",
       );
+      debugLog("browser-agent", "model turn output", {
+        runId,
+        turn: turn + 1,
+        responseId: response.id,
+        outputText: previewForLog(extractResponseText(response)),
+        toolCalls: calls.map((call) => ({
+          name: call.name,
+          arguments: previewForLog(call.arguments),
+        })),
+      });
 
       if (calls.length === 0) {
         const text = extractResponseText(response);
@@ -117,6 +198,10 @@ export class BrowserAgentService {
           actionsTaken,
           success: false,
           error: "No tool call returned.",
+          structuredHandoff: defaultStructuredHandoff(
+            text || "Browser agent stopped without producing a result.",
+            actionsTaken,
+          ),
           needsUserInput: {
             blockedOn: "clarification",
             question:
@@ -130,6 +215,11 @@ export class BrowserAgentService {
 
       for (const call of calls) {
         const name = call.name ?? "";
+        debugLog("browser-agent", "tool call selected", {
+          turn: turn + 1,
+          name,
+          arguments: previewForLog(call.arguments),
+        });
         emit({
           type: "browser_tool_call",
           command: isBrowserCommandName(name) ? name : "produce_browser_result",
@@ -138,10 +228,15 @@ export class BrowserAgentService {
 
         if (name === "produce_browser_result") {
           const parsed = parseCallArguments(call.arguments);
+          debugLog("browser-agent", "produce_browser_result", {
+            turn: turn + 1,
+            result: previewForLog(parsed, 1_500),
+          });
           return normalizeBrowserResult(parsed, actionsTaken);
         }
 
         if (!isBrowserCommandName(name)) {
+          debugLog("browser-agent", "unsupported tool", { name }, "warn");
           functionOutputs.push({
             type: "function_call_output",
             call_id: call.call_id,
@@ -155,6 +250,11 @@ export class BrowserAgentService {
           command = toBrowserCommand(name, parseCallArguments(call.arguments));
         } catch (error) {
           const message = error instanceof Error ? error.message : "Invalid command.";
+          debugLog("browser-agent", "tool args rejected", {
+            name,
+            error: message,
+            arguments: previewForLog(call.arguments),
+          }, "warn");
           functionOutputs.push({
             type: "function_call_output",
             call_id: call.call_id,
@@ -166,6 +266,31 @@ export class BrowserAgentService {
         const commandResult = await this.relay.execute(command);
         actionsTaken.push(formatAction(command, commandResult.ok));
         repeatedErrors = commandResult.ok ? 0 : repeatedErrors + 1;
+        const currentError = commandResult.ok ? undefined : commandResult.error || "Unknown command error.";
+        if (currentError && currentError === lastError) {
+          sameErrorCount += 1;
+        } else {
+          sameErrorCount = currentError ? 1 : 0;
+          lastError = currentError;
+        }
+        const observedUrl = extractUrl(commandResult.result);
+        if (observedUrl) {
+          if (!lastUrl || observedUrl !== lastUrl) {
+            lastUrl = observedUrl;
+            mutationsSinceUrlChange = 0;
+          }
+        } else if (isMutationCommand(command)) {
+          mutationsSinceUrlChange += 1;
+        }
+        debugLog("browser-agent", "tool command result", {
+          runId,
+          name,
+          ok: commandResult.ok,
+          repeatedErrors,
+          sameErrorCount,
+          mutationsSinceUrlChange,
+          result: previewForLog(commandResult.result ?? commandResult.error),
+        }, commandResult.ok ? "info" : "warn");
 
         emit({
           type: "browser_tool_result",
@@ -178,15 +303,35 @@ export class BrowserAgentService {
         functionOutputs.push({
           type: "function_call_output",
           call_id: call.call_id,
-          output: JSON.stringify(commandResult),
+          output: JSON.stringify(toModelCommandResult(command, commandResult)),
         });
 
-        if (repeatedErrors >= 3) {
+        const handoffReason = getLoopHandoffReason(
+          repeatedErrors,
+          sameErrorCount,
+          mutationsSinceUrlChange,
+        );
+        if (handoffReason) {
+          debugLog("browser-agent", "stopping after repeated command failures", {
+            runId,
+            repeatedErrors,
+            sameErrorCount,
+            mutationsSinceUrlChange,
+            lastError: commandResult.error,
+            actionsTaken,
+          }, "warn");
+          const handoff = defaultStructuredHandoff(handoffReason, actionsTaken);
+          emit({
+            type: "browser_handoff",
+            handoff,
+            createdAt: new Date().toISOString(),
+          });
           return {
-            summary: "Browser posting stopped after repeated command failures.",
+            summary: handoffReason,
             actionsTaken,
             success: false,
             error: commandResult.error || "Repeated browser command failures.",
+            structuredHandoff: handoff,
             needsUserInput: {
               blockedOn: "clarification",
               question:
@@ -199,11 +344,19 @@ export class BrowserAgentService {
       nextInput = functionOutputs;
     }
 
+    debugLog("browser-agent", "turn limit reached", { actionsTaken }, "warn");
+    const handoff = defaultStructuredHandoff("Browser mission reached the turn limit before finishing.", actionsTaken);
+    emit({
+      type: "browser_handoff",
+      handoff,
+      createdAt: new Date().toISOString(),
+    });
     return {
-      summary: "Browser posting reached the turn limit before finishing.",
+      summary: "Browser mission reached the turn limit before finishing.",
       actionsTaken,
       success: false,
       error: "Turn limit reached.",
+      structuredHandoff: handoff,
       needsUserInput: {
         blockedOn: "clarification",
         question:
@@ -216,47 +369,103 @@ export class BrowserAgentService {
     model: string,
     input: unknown,
     previousResponseId?: string,
+    emit?: EmitBrowserEvent,
   ): Promise<OpenAIResponsesResponse> {
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
+    const body = JSON.stringify({
+      model,
+      previous_response_id: previousResponseId,
+      input,
+      tools: browserTools(),
+      tool_choice: "auto",
+      reasoning: {
+        effort: "high",
       },
-      body: JSON.stringify({
-        model,
-        previous_response_id: previousResponseId,
-        input,
-        tools: browserTools(),
-        tool_choice: "auto",
-        reasoning: {
-          effort: "low",
-        },
-        truncation: "auto",
-      }),
+      truncation: "auto",
     });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI browser agent failed with ${response.status}.`);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const startedAt = Date.now();
+      debugLog("browser-agent", "OpenAI response request", {
+        model,
+        attempt: attempt + 1,
+        previousResponseId,
+        bodyLength: body.length,
+      });
+      const response = await fetch("https://api.openai.com/v1/responses", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body,
+      });
+
+      if (response.ok) {
+        const json = (await response.json()) as OpenAIResponsesResponse;
+        debugLog("browser-agent", "OpenAI response ok", {
+          model,
+          attempt: attempt + 1,
+          status: response.status,
+          durationMs: durationMs(startedAt),
+          responseId: json.id,
+          outputItems: json.output?.length ?? 0,
+        });
+        return json;
+      }
+
+      const detail = await response.text();
+      if ((response.status === 429 || response.status >= 500) && attempt < 2) {
+        const retryDelayMs = getRetryDelayMs(response, detail, attempt);
+        debugLog("browser-agent", "OpenAI response retry", {
+          model,
+          attempt: attempt + 1,
+          status: response.status,
+          durationMs: durationMs(startedAt),
+          retryDelayMs,
+          detail: previewForLog(detail),
+        }, "warn");
+        emit?.({
+          type: "browser_agent_retry",
+          message: `OpenAI browser agent retrying after ${response.status}.`,
+          retryDelayMs,
+          createdAt: new Date().toISOString(),
+        });
+        await sleep(retryDelayMs);
+        continue;
+      }
+
+      debugLog("browser-agent", "OpenAI response failed", {
+        model,
+        attempt: attempt + 1,
+        status: response.status,
+        durationMs: durationMs(startedAt),
+        detail: previewForLog(detail),
+      }, "error");
+      throw new Error(
+        `OpenAI browser agent failed with ${response.status}: ${preview(detail)}`,
+      );
     }
 
-    return (await response.json()) as OpenAIResponsesResponse;
+    throw new Error("OpenAI browser agent failed after retries.");
   }
 }
 
-function buildUserTask(input: PostCommentRequest) {
-  return `Post this exact prepared comment on the target URL.
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-Target URL: ${input.url}
+function getRetryDelayMs(response: Response, detail: string, attempt: number) {
+  const retryAfter = Number(response.headers.get("retry-after"));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    return Math.min(retryAfter * 1000, 30_000);
+  }
 
-Prepared comment:
-${input.comment}
+  const bodyDelay = detail.match(/try again in\s+([\d.]+)s/i);
+  if (bodyDelay?.[1]) {
+    return Math.min(Number(bodyDelay[1]) * 1000, 30_000);
+  }
 
-Constraints:
-- The user clicked Post now, so this specific comment submission is approved.
-- Only submit this exact comment.
-- If the page needs login, captcha, credentials, extra choices, or destructive confirmation, stop and ask the user.
-- If the URL is not a commentable page, stop and report that.`;
+  return 2_500 * (attempt + 1);
 }
 
 function parseCallArguments(value: string | undefined): Record<string, unknown> {
@@ -279,6 +488,11 @@ function normalizeBrowserResult(
     typeof value.needsUserInput === "object" && value.needsUserInput !== null
       ? (value.needsUserInput as BrowserResult["needsUserInput"])
       : undefined;
+  const structuredHandoff =
+    typeof value.structuredHandoff === "object" &&
+    value.structuredHandoff !== null
+      ? (value.structuredHandoff as BrowserResult["structuredHandoff"])
+      : undefined;
 
   return {
     summary:
@@ -291,6 +505,7 @@ function normalizeBrowserResult(
       typeof value.activeTabId === "string" ? value.activeTabId : undefined,
     success: value.success === true,
     error: typeof value.error === "string" ? value.error : undefined,
+    structuredHandoff,
     needsUserInput,
   };
 }
@@ -321,8 +536,7 @@ function browserTools() {
     {
       type: "function",
       name: "produce_browser_result",
-      description:
-        "Submit the final result of the approved post-comment browser workflow.",
+      description: "Submit the final result of the browser mission.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -349,6 +563,46 @@ function browserTools() {
               },
             },
             required: ["question", "blockedOn"],
+          },
+          structuredHandoff: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              currentState: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  description: { type: "string" },
+                  url: { type: "string" },
+                  tabId: { type: "string" },
+                },
+                required: ["description"],
+              },
+              stepsCompleted: { type: "array", items: { type: "string" } },
+              approachesTried: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    approach: { type: "string" },
+                    result: {
+                      type: "string",
+                      enum: ["success", "partial", "failed"],
+                    },
+                    detail: { type: "string" },
+                  },
+                  required: ["approach", "result", "detail"],
+                },
+              },
+              nextSteps: { type: "array", items: { type: "string" } },
+            },
+            required: [
+              "currentState",
+              "stepsCompleted",
+              "approachesTried",
+              "nextSteps",
+            ],
           },
         },
         required: ["summary", "actionsTaken", "success"],
@@ -470,6 +724,71 @@ function toolSchema(name: BrowserCommand["name"]) {
 
 function preview(value: string) {
   return value.length > 240 ? `${value.slice(0, 240)}...` : value;
+}
+
+function toModelCommandResult(command: BrowserCommand, result: CommandResult): CommandResult {
+  if (!result.result) return result;
+
+  if (command.name === "screenshot") {
+    const metaMatch = result.result.match(/^__SCREENSHOT_META__(.*?)__/);
+    return {
+      ...result,
+      result: metaMatch
+        ? `Screenshot captured. Metadata: ${metaMatch[1]}. Image bytes omitted from model context. Use snap for element refs.`
+        : "Screenshot captured. Image bytes omitted from model context. Use snap for element refs.",
+    };
+  }
+
+  if (result.result.length > 12_000) {
+    return {
+      ...result,
+      result: `${result.result.slice(0, 12_000)}\n...[truncated ${result.result.length - 12_000} chars]`,
+    };
+  }
+
+  return result;
+}
+
+const MUTATION_COMMANDS = new Set<BrowserCommand["name"]>([
+  "new_tab",
+  "navigate",
+  "click_element",
+  "clickxy",
+  "type_text",
+  "press_key",
+  "scroll",
+]);
+
+function isMutationCommand(command: BrowserCommand) {
+  return MUTATION_COMMANDS.has(command.name);
+}
+
+function extractUrl(value?: string) {
+  if (!value) return undefined;
+  const explicitUrl = value.match(/^URL:\s*(\S+)/m);
+  if (explicitUrl?.[1]) return explicitUrl[1];
+  const navigatedUrl = value.match(/Navigated to\s+(\S+)/i);
+  return navigatedUrl?.[1];
+}
+
+function getLoopHandoffReason(
+  repeatedErrors: number,
+  sameErrorCount: number,
+  mutationsSinceUrlChange: number,
+) {
+  if (repeatedErrors >= SAME_ERROR_LIMIT) {
+    return "Browser mission stopped after repeated command failures.";
+  }
+
+  if (sameErrorCount >= SAME_ERROR_LIMIT) {
+    return "Browser mission stopped after the same command error repeated.";
+  }
+
+  if (mutationsSinceUrlChange >= NO_PROGRESS_LIMIT) {
+    return "Browser mission stopped after several actions without visible navigation progress.";
+  }
+
+  return undefined;
 }
 
 function formatAction(command: BrowserCommand, ok: boolean) {

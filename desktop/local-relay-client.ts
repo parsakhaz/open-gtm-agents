@@ -4,6 +4,7 @@ import type {
   BrowserConnectionStatus,
   CommandResult,
 } from "../src/lib/browser-relay/types";
+import { debugLog, durationMs, previewForLog } from "../src/lib/debug-log";
 import type { CdpCommands } from "./cdp-commands";
 
 const DEFAULT_PORT = 4123;
@@ -43,6 +44,7 @@ export class LocalRelayServer {
     }
 
     if (request.method === "GET" && request.url === "/status") {
+      debugLog("desktop-relay", "status request", this.getStatus());
       sendJson(response, 200, this.getStatus());
       return;
     }
@@ -58,6 +60,7 @@ export class LocalRelayServer {
       }
 
       try {
+        const startedAt = Date.now();
         const body = await readJson(request);
         const command = (body as { command?: BrowserCommand }).command;
         if (!command?.name) {
@@ -65,9 +68,22 @@ export class LocalRelayServer {
           return;
         }
 
+        debugLog("desktop-relay", "command received", {
+          name: command.name,
+          command: previewForLog(command),
+        });
         const result = await commands.execute(command);
+        debugLog("desktop-relay", "command completed", {
+          name: command.name,
+          ok: result.ok,
+          durationMs: durationMs(startedAt),
+          result: previewForLog(result.result ?? result.error),
+        }, result.ok ? "info" : "warn");
         sendJson(response, 200, result);
       } catch (error) {
+        debugLog("desktop-relay", "command failed", {
+          error: error instanceof Error ? error.message : String(error),
+        }, "error");
         sendJson(response, 500, {
           ok: false,
           error: error instanceof Error ? error.message : String(error),
@@ -81,7 +97,7 @@ export class LocalRelayServer {
 }
 
 function setCorsHeaders(response: http.ServerResponse) {
-  response.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+  response.setHeader("Access-Control-Allow-Origin", "*");
   response.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }

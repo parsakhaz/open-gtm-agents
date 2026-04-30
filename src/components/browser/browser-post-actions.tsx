@@ -67,10 +67,19 @@ export function BrowserPostActions({
   function updateStateFromEvent(event: BrowserRunEvent) {
     if (event.type === "browser_status") {
       setMessage(event.message);
+    } else if (event.type === "orchestrator_decision") {
+      setMessage(event.message);
+    } else if (event.type === "browser_agent_step") {
+      setMessage(event.message);
+    } else if (event.type === "browser_agent_retry") {
+      setMessage(event.message);
     } else if (event.type === "browser_tool_call") {
       setMessage(`Running ${event.command}...`);
     } else if (event.type === "browser_tool_result") {
       setMessage(event.preview || `${event.command} ${event.ok ? "completed" : "failed"}.`);
+    } else if (event.type === "browser_handoff") {
+      setState("error");
+      setMessage(event.handoff.currentState.description);
     } else if (event.type === "browser_done") {
       setState(event.result.success ? "done" : "error");
       setMessage(event.result.summary);

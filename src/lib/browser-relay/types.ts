@@ -33,7 +33,42 @@ export type PostCommentRequest = {
   opportunityId?: string;
 };
 
-export type BrowserResult = {
+export type BrowserStopCondition =
+  | "login"
+  | "captcha"
+  | "credentials"
+  | "permissions"
+  | "ambiguity"
+  | "destructive_confirmation";
+
+export type BrowserStructuredHandoff = {
+  stepsCompleted: string[];
+  currentState: {
+    url?: string;
+    tabId?: string;
+    description: string;
+  };
+  approachesTried: Array<{
+    approach: string;
+    result: "success" | "partial" | "failed";
+    detail: string;
+  }>;
+  nextSteps: string[];
+};
+
+export type BrowserMissionRequest = {
+  mission: string;
+  startUrl?: string;
+  exactTextToSubmit?: string;
+  constraints: string[];
+  successCriteria: string[];
+  stopConditions: BrowserStopCondition[];
+  allowedDomains?: string[];
+  opportunityId?: string;
+  maxTurns?: number;
+};
+
+export type BrowserMissionResult = {
   summary: string;
   actionsTaken: string[];
   finalUrl?: string;
@@ -44,7 +79,10 @@ export type BrowserResult = {
     question: string;
     blockedOn: "missing_information" | "destructive_confirmation" | "clarification" | "credentials";
   };
+  structuredHandoff?: BrowserStructuredHandoff;
 };
+
+export type BrowserResult = BrowserMissionResult;
 
 export type BrowserRunEvent =
   | {
@@ -73,6 +111,27 @@ export type BrowserRunEvent =
   | {
       type: "browser_error";
       message: string;
+      createdAt: string;
+    }
+  | {
+      type: "orchestrator_decision";
+      message: string;
+      createdAt: string;
+    }
+  | {
+      type: "browser_agent_step";
+      message: string;
+      createdAt: string;
+    }
+  | {
+      type: "browser_agent_retry";
+      message: string;
+      retryDelayMs?: number;
+      createdAt: string;
+    }
+  | {
+      type: "browser_handoff";
+      handoff: BrowserStructuredHandoff;
       createdAt: string;
     };
 

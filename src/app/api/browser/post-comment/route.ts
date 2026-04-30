@@ -2,16 +2,27 @@ import type {
   BrowserRunEvent,
   PostCommentRequest,
 } from "@/lib/browser-relay/types";
+import { debugLog, durationMs } from "@/lib/debug-log";
 import { browserAgentService } from "@/server/browser/browser-agent-service";
+import { browserOrchestratorService } from "@/server/browser/browser-orchestrator-service";
 
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
   let input: PostCommentRequest;
+  const startedAt = Date.now();
 
   try {
     input = parsePostCommentRequest(await request.json());
+    debugLog("browser-api", "post-comment request accepted", {
+      url: input.url,
+      commentLength: input.comment.length,
+      opportunityId: input.opportunityId,
+    });
   } catch (error) {
+    debugLog("browser-api", "post-comment request rejected", {
+      error: error instanceof Error ? error.message : String(error),
+    }, "warn");
     return Response.json(
       {
         error:
@@ -29,8 +40,16 @@ export async function POST(request: Request) {
       };
 
       try {
-        await browserAgentService.postComment(input, emit);
+        const mission = await browserOrchestratorService.createPostCommentMission(
+          input,
+          emit,
+        );
+        await browserAgentService.runMission(mission, emit);
       } catch (error) {
+        debugLog("browser-api", "post-comment stream failed", {
+          durationMs: durationMs(startedAt),
+          error: error instanceof Error ? error.message : String(error),
+        }, "error");
         emit({
           type: "browser_error",
           message:
@@ -38,6 +57,9 @@ export async function POST(request: Request) {
           createdAt: new Date().toISOString(),
         });
       } finally {
+        debugLog("browser-api", "post-comment stream closed", {
+          durationMs: durationMs(startedAt),
+        });
         controller.close();
       }
     },

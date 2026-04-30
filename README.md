@@ -220,3 +220,27 @@ Verified with:
 - `npm run lint`
 - `npm run build`
 - `npm run test:web-researcher`
+
+## Local Development
+
+Use the cross-platform runner when testing the dry-run UI and browser companion together:
+
+```bash
+npm run dev:local
+```
+
+By default it:
+
+- pulls `.env.local` from the linked Vercel development environment when the file is missing
+- starts Next.js at `http://127.0.0.1:3000`
+- starts the Electron browser companion relay at `http://127.0.0.1:4123`
+- keeps the browser posting model from `.env.local`, currently `OPENAI_MODEL=gpt-5.4-mini`
+
+Useful options:
+
+```bash
+npm run dev:local -- --port 3003
+npm run dev:local -- --env pull
+npm run dev:local -- --desktop false
+VERCEL_PROJECT=open-gtm-agents VERCEL_SCOPE=parsas npm run dev:local
+```

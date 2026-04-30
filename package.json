@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:local": "node scripts/run-dev.mjs",
     "desktop:dev": "electron desktop/electron-bootstrap.cjs",
     "debug:cdp": "node scripts/debug-cdp.mjs",
     "build": "next build",

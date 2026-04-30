@@ -3,6 +3,7 @@ import type {
   BrowserConnectionStatus,
   CommandResult,
 } from "../src/lib/browser-relay/types";
+import { debugLog, durationMs, previewForLog } from "../src/lib/debug-log";
 import type { CdpClient } from "./cdp-client";
 
 const NAVIGATION_TIMEOUT_MS = 30_000;
@@ -50,32 +51,59 @@ export class CdpCommands {
   constructor(private cdp: CdpClient) {}
 
   async execute(command: BrowserCommand): Promise<CommandResult> {
+    const startedAt = Date.now();
+    debugLog("cdp", "execute", {
+      name: command.name,
+      command: previewForLog(command),
+    });
+
+    let result: CommandResult;
     switch (command.name) {
       case "list_tabs":
-        return this.listTabs();
+        result = await this.listTabs();
+        break;
       case "new_tab":
-        return this.newTab(command.url);
+        result = await this.newTab(command.url);
+        break;
       case "snap":
-        return this.snapshot(command.tabId, command.mode);
+        result = await this.snapshot(command.tabId, command.mode);
+        break;
       case "screenshot":
-        return this.screenshot(command.tabId);
+        result = await this.screenshot(command.tabId);
+        break;
       case "navigate":
-        return this.navigate(command.tabId, command.url);
+        result = await this.navigate(command.tabId, command.url);
+        break;
       case "click_element":
-        return this.clickElement(command.tabId, command.index);
+        result = await this.clickElement(command.tabId, command.index);
+        break;
       case "clickxy":
-        return this.clickXy(command.tabId, command.x, command.y);
+        result = await this.clickXy(command.tabId, command.x, command.y);
+        break;
       case "type_text":
-        return this.typeText(command.tabId, command.text);
+        result = await this.typeText(command.tabId, command.text);
+        break;
       case "press_key":
-        return this.pressKey(command.tabId, command.key);
+        result = await this.pressKey(command.tabId, command.key);
+        break;
       case "scroll":
-        return this.scroll(command.tabId, command.direction, command.amount);
+        result = await this.scroll(command.tabId, command.direction, command.amount);
+        break;
       case "wait_for_text":
-        return this.waitForText(command.tabId, command.text, command.timeoutMs);
+        result = await this.waitForText(command.tabId, command.text, command.timeoutMs);
+        break;
       case "wait_for_url":
-        return this.waitForUrl(command.tabId, command.pattern, command.timeoutMs);
+        result = await this.waitForUrl(command.tabId, command.pattern, command.timeoutMs);
+        break;
     }
+
+    debugLog("cdp", "execute result", {
+      name: command.name,
+      ok: result.ok,
+      durationMs: durationMs(startedAt),
+      result: previewForLog(result.result ?? result.error),
+    }, result.ok ? "info" : "warn");
+    return result;
   }
 
   async status(): Promise<BrowserConnectionStatus> {
