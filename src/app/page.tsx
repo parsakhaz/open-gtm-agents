@@ -5,7 +5,6 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock3,
-  Globe2,
   Loader2,
   Mail,
   Play,
@@ -85,10 +84,7 @@ export default function Home() {
         ) : (
           <section className="flex flex-1 flex-col gap-4 py-4">
             <RunTopBar
-              url={url}
               progress={progress}
-              phase={state.phase}
-              stage={state.activeStage}
               onRestart={() => startRun()}
             />
 
@@ -366,35 +362,16 @@ function ConnectingPanel({
 }
 
 function RunTopBar({
-  url,
   progress,
-  phase,
-  stage,
   onRestart,
 }: {
-  url: string;
   progress: number;
-  phase: string;
-  stage: string;
   onRestart: () => void;
 }) {
   return (
-    <div className="rounded-lg border bg-white/80 p-4 shadow-sm backdrop-blur">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="min-w-0">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Badge variant="success" className="gap-1">
-              <Sparkles className="h-3 w-3" />
-              Running
-            </Badge>
-            <Badge variant="outline" className="gap-1">
-              <Globe2 className="h-3 w-3" />
-              {url}
-            </Badge>
-          </div>
-          <h2 className="text-xl font-semibold tracking-normal">{stage}</h2>
-        </div>
-        <div className="flex min-w-[320px] items-center gap-3">
+    <div className="rounded-lg border bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
+      <div className="flex items-center justify-end gap-3">
+        <div className="flex w-full max-w-sm items-center gap-3">
           <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
             <motion.div
               className="h-full rounded-full bg-primary"
@@ -403,18 +380,11 @@ function RunTopBar({
             />
           </div>
           <div className="w-10 text-right text-xs font-semibold">{progress}%</div>
-          <Button variant="outline" size="sm" onClick={onRestart}>
-            <RefreshCcw className="h-3.5 w-3.5" />
-            Replay
-          </Button>
         </div>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {["onboarding", "discovery", "complete"].map((item) => (
-          <Badge key={item} variant={phase === item ? "default" : "secondary"}>
-            {item}
-          </Badge>
-        ))}
+        <Button variant="outline" size="sm" onClick={onRestart}>
+          <RefreshCcw className="h-3.5 w-3.5" />
+          Replay
+        </Button>
       </div>
     </div>
   );
