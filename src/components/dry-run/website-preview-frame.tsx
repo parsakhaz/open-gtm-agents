@@ -21,11 +21,11 @@ export function WebsitePreviewFrame({
     websiteSections.findIndex((section) => section.id === activeSection),
   );
   const iframeOffset = useMemo(() => {
-    return Math.min(activeIndex * 430, 1720);
+    return Math.min(activeIndex * 250, 1125);
   }, [activeIndex]);
 
   return (
-    <div className="grid min-h-[560px] items-center gap-8 lg:grid-cols-[minmax(0,1fr)_260px]">
+    <div className="grid min-h-[600px] items-center gap-6 lg:grid-cols-[minmax(0,1fr)_230px]">
       <motion.div
         initial={{ opacity: 0, y: 18, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -55,14 +55,14 @@ export function WebsitePreviewFrame({
           <Search className="h-4 w-4 text-muted-foreground" />
         </div>
 
-        <div className="relative h-[500px] overflow-hidden bg-[#fffcf7]">
+        <div className="relative h-[560px] overflow-hidden bg-[#fffcf7]">
           {mode === "live" ? (
             <>
               <div className="absolute top-0 left-1/2 h-[2200px] w-[1440px] -translate-x-1/2">
                 <motion.div
                   animate={{ y: -iframeOffset }}
                   transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-                  className="h-full w-full origin-top scale-[0.62] overflow-hidden rounded-sm bg-white"
+                  className="h-full w-full origin-top scale-[0.68] overflow-hidden rounded-sm bg-white"
                 >
                   <iframe
                     src={demoUrl}

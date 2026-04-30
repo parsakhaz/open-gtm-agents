@@ -300,6 +300,6 @@ export const dryRunEvents: DryRunEvent[] = [
   { type: "opportunity", at: 24600, cardId: "github-booking-issue" },
   { type: "source_search", at: 25600, source: "web", query: "salon answering service booking follow up" },
   { type: "opportunity", at: 27000, cardId: "competitive-answering-service" },
-  { type: "status", at: 28400, stage: "Approval email", message: "Preparing a Resend email for opportunities that need review." },
+  { type: "status", at: 28400, stage: "Notify founder", message: "Packaging the best items into a short approval request." },
   { type: "phase", at: 30000, phase: "complete" },
 ];
