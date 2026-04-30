@@ -17,12 +17,14 @@ export function OpportunityFeed({
   rewriteVariant,
   approvalState,
   items = opportunities,
+  showHeader = true,
 }: {
   visibleIds: string[];
   selectedId?: string;
   rewriteVariant?: keyof OpportunityCard["variants"];
   approvalState?: "idle" | "reviewing" | "rewriting" | "copied";
   items?: OpportunityCard[];
+  showHeader?: boolean;
 }) {
   const visible = items.filter((opportunity) => visibleIds.includes(opportunity.id));
   const [userSelectedId, setUserSelectedId] = useState<string | null | undefined>(undefined);
@@ -30,6 +32,7 @@ export function OpportunityFeed({
 
   return (
     <div className="space-y-3">
+      {showHeader && (
         <div className="rounded-lg border bg-card/85 p-4 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -45,6 +48,7 @@ export function OpportunityFeed({
             </div>
           </div>
         </div>
+      )}
 
         <AnimatePresence initial={false}>
           {visible.map((opportunity) => {

@@ -6,13 +6,18 @@ import {
   BellRing,
   ChevronDown,
   CheckCircle2,
+  ClipboardList,
   Clock3,
+  FileSearch,
   Globe2,
+  ListChecks,
   Loader2,
   Mail,
+  MousePointerClick,
   Radar,
   RefreshCcw,
   Scissors,
+  Search,
   Target,
   Users,
 } from "lucide-react";
@@ -26,12 +31,23 @@ import { WebsitePreviewFrame } from "@/components/dry-run/website-preview-frame"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { demoUrl, opportunities, schemaSections, searchStrategy, skippedOpportunities } from "@/lib/dry-run/demo-data";
+import {
+  demoUrl,
+  opportunities,
+  schemaSections,
+  searchStrategy,
+  skippedOpportunities,
+  websiteSections,
+} from "@/lib/dry-run/demo-data";
+import type { OpportunityCard, SchemaSection } from "@/lib/dry-run/types";
 import { useDryRun } from "@/lib/dry-run/use-dry-run";
 import type { SourceReference } from "@/lib/research/types";
 import { useRealResearchRun } from "@/lib/research/use-real-research-run";
 
 type RunMode = "dry" | "real";
+
+type RunTab = "opportunities" | "research" | "actions" | "profile" | "overview";
+type SearchRecord = { source: "reddit" | "x" | "hacker_news" | "github" | "web" | "resend"; query: string };
 
 export default function Home() {
   const [url, setUrl] = useState(demoUrl);
@@ -45,6 +61,10 @@ export default function Home() {
   const liveOpportunities = runMode === "real" ? realRun.opportunities : undefined;
   const liveSourceResults = runMode === "real" ? realRun.sourceResults : undefined;
   const opportunityCount = liveOpportunities?.length ?? opportunities.length;
+  const siteName =
+    runMode === "dry"
+      ? websiteSections.find((section) => section.id === "navigation")?.headline ?? hostnameFromUrl(url)
+      : hostnameFromUrl(url);
 
   function startRun(event?: FormEvent) {
     event?.preventDefault();
@@ -58,14 +78,7 @@ export default function Home() {
     <main className="min-h-screen bg-[#fbf2ee] text-foreground">
       <div className="mx-auto flex min-h-screen w-full max-w-[1480px] flex-col px-5 py-5">
         <header className="flex items-center justify-between gap-4 rounded-lg border bg-white/75 px-4 py-3 shadow-sm backdrop-blur">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#1f2b24] text-primary">
-              <Radar className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="text-sm font-bold tracking-normal">Open GTM Agents</div>
-            </div>
-          </div>
+          <SiteHeaderIdentity isRunning={isRunning} siteName={siteName} url={url} />
           {isRunning && (
             <RunControls
               gate={gate}
@@ -168,28 +181,443 @@ export default function Home() {
                 sourceResults={liveSourceResults}
               />
             ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                className="grid gap-4"
-              >
-                <OpportunityFeed
-                  visibleIds={state.opportunityIds}
-                  selectedId={state.selectedOpportunityId}
-                  rewriteVariant={state.rewriteVariant}
-                  approvalState={state.approvalState}
-                  items={liveOpportunities}
-                />
-                <ResearchInsights searches={state.searches} showSeededStrategy={runMode === "dry"} />
-                {runMode === "dry" && <MonitoringSummary complete={state.phase === "complete"} />}
-              </motion.div>
+              <CompletedReviewWorkspace
+                visibleIds={state.opportunityIds}
+                selectedId={state.selectedOpportunityId}
+                rewriteVariant={state.rewriteVariant}
+                approvalState={state.approvalState}
+                searches={state.searches}
+                items={liveOpportunities}
+                sections={liveSchemaSections}
+                showSeededStrategy={runMode === "dry"}
+              />
             )}
           </section>
         )}
       </div>
     </main>
   );
+}
+
+function CompletedReviewWorkspace({
+  visibleIds,
+  selectedId,
+  rewriteVariant,
+  approvalState,
+  searches,
+  items = opportunities,
+  sections = schemaSections,
+  showSeededStrategy = true,
+}: {
+  visibleIds: string[];
+  selectedId?: string;
+  rewriteVariant?: keyof (typeof opportunities)[number]["variants"];
+  approvalState?: "idle" | "reviewing" | "rewriting" | "copied";
+  searches: SearchRecord[];
+  items?: OpportunityCard[];
+  sections?: SchemaSection[];
+  showSeededStrategy?: boolean;
+}) {
+  const [activeTab, setActiveTab] = useState<RunTab>("opportunities");
+  const visibleOpportunities = items.filter((opportunity) => visibleIds.includes(opportunity.id));
+  const groups = groupedSearches(searches);
+  const userActions = userActionsForRun(approvalState, rewriteVariant, visibleOpportunities.length);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]"
+    >
+      <RunSidebar
+        activeTab={activeTab}
+        onSelect={setActiveTab}
+        opportunitiesFound={visibleOpportunities.length}
+        researchSources={groups.length}
+        queryCount={searches.length}
+        userActionCount={userActions.length}
+        approvalState={approvalState}
+        profileFieldCount={sections.length}
+      />
+
+      <section className="min-w-0 rounded-xl border bg-white/80 p-4 shadow-sm backdrop-blur">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+          >
+            {activeTab === "overview" && (
+              <RunOverviewPanel
+                visibleOpportunities={visibleOpportunities}
+                searches={searches}
+                userActions={userActions}
+                sections={sections}
+                showSeededStrategy={showSeededStrategy}
+              />
+            )}
+
+            {activeTab === "profile" && <GtmProfilePanel sections={sections} />}
+
+            {activeTab === "research" && (
+              <ResearchInsights searches={searches} defaultOpen showSeededStrategy={showSeededStrategy} />
+            )}
+
+            {activeTab === "opportunities" && (
+              <div>
+                <SectionHeading
+                  eyebrow="Review queue"
+                  title={`${visibleOpportunities.length} opportunities found`}
+                  description="Each item includes fit, risk, source context, and a draft you can revise before using."
+                />
+                <div className="mt-3">
+                  <OpportunityFeed
+                    visibleIds={visibleIds}
+                    selectedId={selectedId}
+                    rewriteVariant={rewriteVariant}
+                    approvalState={approvalState}
+                    items={items}
+                    showHeader={false}
+                  />
+                </div>
+              </div>
+            )}
+
+            {activeTab === "actions" && (
+              <UserActionsPanel
+                userActions={userActions}
+                visibleOpportunities={visibleOpportunities}
+                approvalState={approvalState}
+                rewriteVariant={rewriteVariant}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </section>
+    </motion.div>
+  );
+}
+
+function RunSidebar({
+  activeTab,
+  onSelect,
+  opportunitiesFound,
+  researchSources,
+  queryCount,
+  userActionCount,
+  approvalState,
+  profileFieldCount,
+}: {
+  activeTab: RunTab;
+  onSelect: (tab: RunTab) => void;
+  opportunitiesFound: number;
+  researchSources: number;
+  queryCount: number;
+  userActionCount: number;
+  approvalState?: "idle" | "reviewing" | "rewriting" | "copied";
+  profileFieldCount: number;
+}) {
+  const tabs = [
+    { id: "opportunities", label: "Opportunities", detail: `${opportunitiesFound} queued`, icon: ListChecks },
+    { id: "research", label: "Research insights", detail: `${researchSources} sources`, icon: Search },
+    { id: "actions", label: "User actions", detail: `${userActionCount} logged`, icon: MousePointerClick },
+    { id: "profile", label: "GTM profile", detail: `${profileFieldCount} fields`, icon: Target },
+    { id: "overview", label: "Rerun settings", detail: `${queryCount} queries`, icon: ClipboardList },
+  ] as const;
+
+  return (
+    <aside className="self-start rounded-xl border bg-[#fffaf7] p-3 shadow-sm lg:sticky lg:top-4">
+      <div className="border-b pb-3">
+        <div className="text-xs font-semibold text-muted-foreground">Run console</div>
+        <h2 className="mt-1 text-lg font-semibold tracking-normal">Salon Agent analysis</h2>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <RunStat label="Found" value={opportunitiesFound} />
+          <RunStat label="Queries" value={queryCount} />
+        </div>
+      </div>
+
+      <nav className="mt-3 space-y-1">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.id;
+
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onSelect(tab.id)}
+              className={`flex w-full cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 text-left transition ${
+                active
+                  ? "border-primary/50 bg-primary/15 text-foreground shadow-sm"
+                  : "border-transparent text-muted-foreground hover:border-border hover:bg-white"
+              }`}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">{tab.label}</span>
+                <span className="block truncate text-[11px]">{tab.detail}</span>
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="mt-3 rounded-lg border bg-white p-3">
+        <div className="mb-2 text-xs font-semibold text-muted-foreground">Latest user state</div>
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <CheckCircle2 className="h-4 w-4 text-[#2e8b64]" />
+          {labelForApprovalState(approvalState)}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function RunOverviewPanel({
+  visibleOpportunities,
+  searches,
+  userActions,
+  sections,
+  showSeededStrategy,
+}: {
+  visibleOpportunities: OpportunityCard[];
+  searches: SearchRecord[];
+  userActions: string[];
+  sections: SchemaSection[];
+  showSeededStrategy: boolean;
+}) {
+  const groups = groupedSearches(searches);
+
+  return (
+    <div className="grid gap-4">
+      <SectionHeading
+        eyebrow="Rerun settings"
+        title="Run setup and monitoring summary"
+        description="A compact summary of the website profile, research coverage, found opportunities, and recurring approval loop."
+      />
+      <div className="grid gap-3 md:grid-cols-4">
+        <SummaryMetric label="Profile fields" value={sections.length} />
+        <SummaryMetric label="Sources searched" value={groups.length} />
+        <SummaryMetric label="Queries run" value={searches.length} />
+        <SummaryMetric label="Opportunities found" value={visibleOpportunities.length} />
+      </div>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+        {showSeededStrategy ? (
+          <MonitoringSummary complete compact />
+        ) : (
+          <div className="rounded-lg border bg-card p-4 shadow-sm">
+            <div className="text-sm font-semibold">Live run settings</div>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              This run used live website research and source-backed opportunity discovery.
+            </p>
+          </div>
+        )}
+        <UserActionList actions={userActions} />
+      </div>
+    </div>
+  );
+}
+
+function GtmProfilePanel({ sections }: { sections: SchemaSection[] }) {
+  return (
+    <div className="grid gap-4">
+      <SectionHeading
+        eyebrow="Website-derived GTM profile"
+        title="Profile built from the landing page"
+        description="The agent uses these fields to decide where to search, what to say, and what to avoid."
+      />
+      <div className="grid gap-3 md:grid-cols-2">
+        {sections.map((section) => (
+          <div key={section.id} className="rounded-lg border bg-card p-4 shadow-sm">
+            <div className="mb-2 flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xs font-semibold text-muted-foreground">{section.source}</div>
+                <h3 className="mt-1 text-base font-semibold tracking-normal">{section.label}</h3>
+              </div>
+              <Badge variant="outline">{section.confidence}%</Badge>
+            </div>
+            <p className="text-sm leading-6 text-muted-foreground">{section.answer}</p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {section.suggestions.map((suggestion) => (
+                <span key={suggestion} className="rounded-full border bg-muted/35 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                  {suggestion}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function UserActionsPanel({
+  userActions,
+  visibleOpportunities,
+  approvalState,
+  rewriteVariant,
+}: {
+  userActions: string[];
+  visibleOpportunities: OpportunityCard[];
+  approvalState?: "idle" | "reviewing" | "rewriting" | "copied";
+  rewriteVariant?: keyof (typeof opportunities)[number]["variants"];
+}) {
+  return (
+    <div className="grid gap-4">
+      <SectionHeading
+        eyebrow="User activity"
+        title="What happened after the run"
+        description="This shows the review state, opportunity count, and user-facing actions captured by the demo flow."
+      />
+      <div className="grid gap-3 md:grid-cols-3">
+        <SummaryMetric label="Opportunities found" value={visibleOpportunities.length} />
+        <SummaryMetric label="Review state" value={labelForApprovalState(approvalState)} />
+        <SummaryMetric label="Rewrite selected" value={rewriteVariant ?? "None"} />
+      </div>
+      <UserActionList actions={userActions} />
+      <div className="rounded-lg border bg-card p-4 shadow-sm">
+        <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+          <FileSearch className="h-4 w-4 text-primary-foreground" />
+          Opportunity breakdown
+        </div>
+        <div className="grid gap-2 md:grid-cols-3">
+          <SummaryMetric label="Comments" value={visibleOpportunities.filter((item) => item.type === "comment").length} />
+          <SummaryMetric label="Posts" value={visibleOpportunities.filter((item) => item.type === "post").length} />
+          <SummaryMetric label="Intel" value={visibleOpportunities.filter((item) => item.type === "competitive").length} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UserActionList({ actions }: { actions: string[] }) {
+  return (
+    <div className="rounded-lg border bg-card p-4 shadow-sm">
+      <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+        <MousePointerClick className="h-4 w-4 text-primary-foreground" />
+        User actions
+      </div>
+      <div className="space-y-2">
+        {actions.map((action) => (
+          <div key={action} className="flex gap-3 rounded-md border bg-background p-3 text-sm leading-5">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#2e8b64]" />
+            <span>{action}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RunStat({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="rounded-md border bg-white px-3 py-2">
+      <div className="text-lg font-bold">{value}</div>
+      <div className="text-[10px] font-medium text-muted-foreground uppercase">{label}</div>
+    </div>
+  );
+}
+
+function SummaryMetric({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="rounded-lg border bg-card p-3 shadow-sm">
+      <div className="text-xl font-bold">{value}</div>
+      <div className="mt-1 text-[10px] font-medium text-muted-foreground uppercase">{label}</div>
+    </div>
+  );
+}
+
+function userActionsForRun(
+  approvalState?: "idle" | "reviewing" | "rewriting" | "copied",
+  rewriteVariant?: keyof (typeof opportunities)[number]["variants"],
+  opportunityCount = opportunities.length,
+) {
+  const actions = [
+    "Approved the website-derived GTM profile.",
+    "Opened the opportunity review queue.",
+    `${opportunityCount} opportunities were found and prepared for review.`,
+  ];
+
+  if (rewriteVariant || approvalState === "rewriting") {
+    actions.push(`Requested a ${rewriteVariant ?? "more natural"} rewrite for the selected draft.`);
+  }
+
+  if (approvalState === "copied") {
+    actions.push("Copied the selected draft for use.");
+  }
+
+  return actions;
+}
+
+function labelForApprovalState(approvalState?: "idle" | "reviewing" | "rewriting" | "copied") {
+  if (approvalState === "copied") return "Draft copied";
+  if (approvalState === "rewriting") return "Rewrite requested";
+  if (approvalState === "reviewing") return "Reviewing opportunities";
+  return "No approval action yet";
+}
+
+function SectionHeading({
+  eyebrow,
+  title,
+  description,
+  compact = false,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className={compact ? "" : "border-l-4 border-primary pl-4"}>
+      <div className="text-xs font-semibold text-muted-foreground">{eyebrow}</div>
+      <h2 className={`${compact ? "text-xl" : "text-2xl"} mt-1 font-semibold tracking-normal`}>{title}</h2>
+      <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+function SiteHeaderIdentity({ isRunning, siteName, url }: { isRunning: boolean; siteName: string; url: string }) {
+  const [failedFaviconUrl, setFailedFaviconUrl] = useState<string | null>(null);
+  const title = isRunning ? siteName : "Open GTM Agents";
+  const faviconUrl = faviconForUrl(url);
+  const faviconBlocked = faviconUrl && failedFaviconUrl === faviconUrl;
+
+  return (
+    <div className="flex min-w-0 items-center gap-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-[#1f2b24] text-primary">
+        {isRunning && faviconUrl && !faviconBlocked ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={faviconUrl}
+            alt=""
+            className="h-full w-full bg-white object-cover"
+            onError={() => setFailedFaviconUrl(faviconUrl)}
+          />
+        ) : (
+          <Radar className="h-5 w-5" />
+        )}
+      </div>
+      <div className="min-w-0">
+        <div className="truncate text-sm font-bold tracking-normal">{title}</div>
+      </div>
+    </div>
+  );
+}
+
+function faviconForUrl(value: string) {
+  const hostname = hostnameFromUrl(value);
+  return hostname ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=64` : "";
+}
+
+function hostnameFromUrl(value: string) {
+  try {
+    return new URL(value).hostname.replace(/^www\./, "");
+  } catch {
+    return value.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+  }
 }
 
 function ResearchBoard({
@@ -363,12 +791,14 @@ function ResearchBoard({
 
 function ResearchInsights({
   searches,
-  showSeededStrategy,
+  defaultOpen = false,
+  showSeededStrategy = true,
 }: {
   searches: Array<{ source: "reddit" | "x" | "hacker_news" | "github" | "web" | "resend"; query: string }>;
-  showSeededStrategy: boolean;
+  defaultOpen?: boolean;
+  showSeededStrategy?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const groups = groupedSearches(searches);
   const totalQueries = groups.reduce((count, group) => count + group.keywords.length, 0);
 
@@ -403,7 +833,7 @@ function ResearchInsights({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden border-t"
           >
-            <div className="space-y-4 p-4">
+            <div className="space-y-3 p-3">
               {showSeededStrategy && <SearchStrategyCard compact />}
               <SearchQueryDetails groups={groups} />
               {showSeededStrategy && <SkippedOpportunityDetails />}
@@ -417,21 +847,21 @@ function ResearchInsights({
 
 function SearchQueryDetails({ groups }: { groups: Array<{ source: "reddit" | "x" | "hacker_news" | "github" | "web" | "resend"; keywords: string[] }> }) {
   return (
-    <div className="rounded-lg border bg-background p-4">
-      <div className="mb-3">
+    <div className="rounded-lg border bg-background p-3">
+      <div className="mb-2">
         <div className="text-xs font-semibold text-muted-foreground">Exact queries</div>
-        <h3 className="mt-1 text-base font-semibold tracking-normal">What the agent searched</h3>
+        <h3 className="text-sm font-semibold tracking-normal">What the agent searched</h3>
       </div>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
         {groups.map((group) => (
-          <div key={group.source} className="rounded-md border bg-card p-3">
-            <div className="mb-3 flex items-center gap-2">
-              <SourceIcon source={group.source} className="h-4 w-4" />
-              <span className="text-sm font-semibold">{sourceLabel(group.source)}</span>
+          <div key={group.source} className="rounded-md border bg-card p-2">
+            <div className="mb-2 flex items-center gap-2">
+              <SourceIcon source={group.source} className="h-3.5 w-3.5" />
+              <span className="text-xs font-semibold">{sourceLabel(group.source)}</span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {group.keywords.map((keyword) => (
-                <div key={keyword} className="rounded-md border bg-background px-3 py-2 text-xs leading-5 text-muted-foreground">
+                <div key={keyword} className="rounded-md border bg-background px-2 py-1.5 text-[11px] leading-4 text-muted-foreground">
                   {keyword}
                 </div>
               ))}
@@ -445,23 +875,23 @@ function SearchQueryDetails({ groups }: { groups: Array<{ source: "reddit" | "x"
 
 function SkippedOpportunityDetails() {
   return (
-    <div className="rounded-lg border bg-background p-4">
-      <div className="mb-3 flex items-center justify-between gap-4">
+    <div className="rounded-lg border bg-background p-3">
+      <div className="mb-2 flex items-center justify-between gap-4">
         <div>
           <div className="text-xs font-semibold text-muted-foreground">Quality filter</div>
-          <h3 className="mt-1 text-base font-semibold tracking-normal">Why results were skipped</h3>
+          <h3 className="text-sm font-semibold tracking-normal">Why results were skipped</h3>
         </div>
         <Badge variant="secondary">{skippedOpportunities.length} skipped</Badge>
       </div>
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-3">
         {skippedOpportunities.map((item) => (
-          <div key={item.title} className="rounded-md border bg-card p-3">
-            <div className="mb-2 flex items-center justify-between gap-2">
+          <div key={item.title} className="rounded-md border bg-card p-2">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
               <span className="text-xs font-semibold text-muted-foreground">{item.source}</span>
               <Badge variant="outline">Skipped</Badge>
             </div>
-            <div className="text-sm font-semibold">{item.title}</div>
-            <p className="mt-2 text-xs leading-5 text-muted-foreground">{item.reason}</p>
+            <div className="text-xs font-semibold">{item.title}</div>
+            <p className="mt-1 text-[11px] leading-4 text-muted-foreground">{item.reason}</p>
           </div>
         ))}
       </div>
@@ -471,15 +901,15 @@ function SkippedOpportunityDetails() {
 
 function SearchStrategyCard({ compact = false }: { compact?: boolean }) {
   return (
-    <div className={`rounded-lg border bg-card p-4 ${compact ? "" : "shadow-sm"}`}>
-      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div className={`rounded-lg border bg-card ${compact ? "p-3" : "p-4 shadow-sm"}`}>
+      <div className={`${compact ? "mb-2" : "mb-3"} flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between`}>
         <div>
           <div className="text-xs font-semibold text-muted-foreground">Search strategy</div>
-          <h3 className="mt-1 text-base font-semibold tracking-normal">{searchStrategy.mode}</h3>
+          <h3 className={`${compact ? "text-sm" : "mt-1 text-base"} font-semibold tracking-normal`}>{searchStrategy.mode}</h3>
         </div>
         <Badge variant="outline">Review before hourly scans</Badge>
       </div>
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-3">
         <StrategyColumn label="Channels" items={searchStrategy.channels} />
         <StrategyColumn label="Query clusters" items={searchStrategy.queryClusters} />
         <StrategyColumn label="Rules" items={searchStrategy.rules} />
@@ -491,10 +921,10 @@ function SearchStrategyCard({ compact = false }: { compact?: boolean }) {
 function StrategyColumn({ label, items }: { label: string; items: string[] }) {
   return (
     <div>
-      <div className="mb-2 text-xs font-semibold text-muted-foreground">{label}</div>
-      <div className="flex flex-wrap gap-2">
+      <div className="mb-1.5 text-xs font-semibold text-muted-foreground">{label}</div>
+      <div className="flex flex-wrap gap-1.5">
         {items.map((item) => (
-          <span key={item} className="rounded-full border bg-muted/35 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+          <span key={item} className="rounded-full border bg-muted/35 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
             {item}
           </span>
         ))}
@@ -577,29 +1007,17 @@ function ConnectingPanel({
         className="mx-auto w-full max-w-7xl"
       >
         <div className="grid min-h-[600px] items-center gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="overflow-hidden rounded-lg border border-[#e8ded7] bg-[#fdfaf5] shadow-md">
-            <div className="flex h-11 items-center gap-3 border-b bg-[#f6f0ea] px-4">
-              <div className="flex gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-[#ff6b5f]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#f3bf4f]" />
-                <span className="h-2.5 w-2.5 rounded-full bg-[#5ecf81]" />
+          <div className="grid min-h-[560px] place-items-center rounded-lg border border-[#e8ded7] bg-[#fffaf4] px-10 text-center shadow-md">
+            <div>
+              <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm">
+                <Radar className="h-6 w-6 text-[#2e8b64]" />
               </div>
-              <div className="flex min-w-0 flex-1 items-center justify-center rounded-md bg-white px-3 py-1.5 text-[11px] text-muted-foreground shadow-sm">
-                salonagent.ai
-              </div>
-            </div>
-            <div className="grid h-[560px] place-items-center bg-[#fffaf4] px-10 text-center">
-              <div>
-                <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm">
-                  <Radar className="h-6 w-6 text-[#2e8b64]" />
-                </div>
-                <h2 className="text-3xl font-semibold tracking-normal">salonagent.ai</h2>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {step === "connecting" && "Connecting to salonagent.ai"}
-                  {step === "trust" && "Checking trust signals"}
-                  {step === "content" && "Preparing content for analysis"}
-                </p>
-              </div>
+              <h2 className="text-3xl font-semibold tracking-normal">salonagent.ai</h2>
+              <p className="mt-2 text-xs text-muted-foreground">
+                {step === "connecting" && "Connecting to salonagent.ai"}
+                {step === "trust" && "Checking trust signals"}
+                {step === "content" && "Preparing content for analysis"}
+              </p>
             </div>
           </div>
 
@@ -706,7 +1124,7 @@ function RunControls({
   );
 }
 
-function MonitoringSummary({ complete }: { complete: boolean }) {
+function MonitoringSummary({ complete, compact = false }: { complete: boolean; compact?: boolean }) {
   const [activated, setActivated] = useState(false);
   const productSummary = schemaSections.find((section) => section.id === "summary");
   const targetCustomer = schemaSections.find((section) => section.id === "customer");
@@ -714,9 +1132,9 @@ function MonitoringSummary({ complete }: { complete: boolean }) {
 
   return (
     <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-      <div className="grid gap-4 border-b bg-[#fffaf7] p-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className={`grid gap-4 border-b bg-[#fffaf7] p-4 ${compact ? "" : "lg:grid-cols-[minmax(0,1fr)_380px]"}`}>
         <div className="flex min-w-0 gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border bg-[#1f2b24] text-primary shadow-sm">
+          <div className={`${compact ? "h-10 w-10" : "h-12 w-12"} flex shrink-0 items-center justify-center rounded-lg border bg-[#1f2b24] text-primary shadow-sm`}>
             <Scissors className="h-6 w-6" />
           </div>
           <div className="min-w-0">
@@ -728,13 +1146,13 @@ function MonitoringSummary({ complete }: { complete: boolean }) {
               </Badge>
             </div>
             <div className="mt-1 text-xl font-semibold tracking-normal">Hourly approval loop for Salon Agent</div>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+            <p className={`${compact ? "line-clamp-3" : "max-w-3xl"} mt-2 text-sm leading-6 text-muted-foreground`}>
               {productSummary?.answer}
             </p>
           </div>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-1">
+        <div className={`grid gap-2 ${compact ? "" : "sm:grid-cols-3 lg:grid-cols-1"}`}>
           <SiteSignal
             icon={<Users className="h-4 w-4" />}
             label="Audience"
@@ -753,9 +1171,9 @@ function MonitoringSummary({ complete }: { complete: boolean }) {
         </div>
       </div>
 
-      <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className={`grid gap-4 p-4 ${compact ? "" : "lg:grid-cols-[minmax(0,1fr)_360px]"}`}>
         <div className="space-y-3">
-          <div className="grid gap-2 text-sm sm:grid-cols-2">
+          <div className={`grid gap-2 text-sm ${compact ? "" : "sm:grid-cols-2"}`}>
             <div className="flex items-center justify-between rounded-md border bg-background p-3">
               <span className="flex items-center gap-2">
                 <Clock3 className="h-4 w-4" />
@@ -780,7 +1198,7 @@ function MonitoringSummary({ complete }: { complete: boolean }) {
             <SourcePill source="web" />
           </div>
 
-          {complete && (
+          {complete && !compact && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}

@@ -33,6 +33,7 @@ export function WebsitePreviewFrame({
   const activePageId = useMemo(() => pageIdForSection(activeSection), [activeSection]);
   const [reloadKey, setReloadKey] = useState(0);
   const activePage = agentPages.find((page) => page.id === activePageId) ?? agentPages[0];
+  const iframeUrl = `${demoUrl}${reloadKey > 0 ? `?reload=${reloadKey}` : ""}`;
   const agentOffset = Math.round((Math.min(100, Math.max(0, scroll)) / 100) * 980);
 
   return (
@@ -83,14 +84,13 @@ export function WebsitePreviewFrame({
             )}
           >
             <div className="h-[2200px] w-[1440px] origin-top-left scale-[0.62]">
-            <iframe
-              key={`${activePage.id}-${reloadKey}`}
-              src={activePage.url}
-              title="Salon Agent live website preview"
-              className="h-full w-full border-0 bg-white"
-              loading="eager"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
+              <iframe
+                src={iframeUrl}
+                title="Salon Agent live website preview"
+                className="h-full w-full border-0 bg-white"
+                loading="eager"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </div>
           </motion.div>
           <div className="pointer-events-none absolute inset-x-4 top-4 z-10 flex items-center">
