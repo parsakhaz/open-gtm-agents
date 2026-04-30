@@ -56,4 +56,7 @@ export type VisibleState = {
   schemaIds: string[];
   searches: Array<{ source: SourceId; query: string }>;
   opportunityIds: string[];
+  selectedOpportunityId?: string;
+  rewriteVariant?: "shorter" | "softer" | "technical" | "direct";
+  approvalState?: "idle" | "reviewing" | "rewriting" | "copied";
 };

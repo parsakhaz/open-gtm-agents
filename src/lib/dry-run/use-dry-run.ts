@@ -13,6 +13,7 @@ const initialState: VisibleState = {
   schemaIds: [],
   searches: [],
   opportunityIds: [],
+  approvalState: "idle",
 };
 
 export function useDryRun(isRunning: boolean) {
@@ -67,9 +68,18 @@ export function useDryRun(isRunning: boolean) {
           }
 
           if (event.type === "opportunity") {
+            const nextOpportunityIds = current.opportunityIds.includes(event.cardId)
+              ? current.opportunityIds
+              : [...current.opportunityIds, event.cardId];
+
             return current.opportunityIds.includes(event.cardId)
               ? current
-              : { ...current, opportunityIds: [...current.opportunityIds, event.cardId] };
+              : {
+                  ...current,
+                  opportunityIds: nextOpportunityIds,
+                  selectedOpportunityId: current.selectedOpportunityId ?? event.cardId,
+                  approvalState: current.approvalState === "idle" ? "reviewing" : current.approvalState,
+                };
           }
 
           return current;
@@ -77,7 +87,44 @@ export function useDryRun(isRunning: boolean) {
       }, event.at),
     );
 
-    return () => timers.forEach(window.clearTimeout);
+    const interactionTimers = [
+      window.setTimeout(() => {
+        setState((current) => ({
+          ...current,
+          selectedOpportunityId: "reddit-missed-calls",
+          approvalState: "reviewing",
+        }));
+      }, 19000),
+      window.setTimeout(() => {
+        setState((current) => ({
+          ...current,
+          rewriteVariant: "softer",
+          approvalState: "rewriting",
+          activeStage: "Refining draft",
+          activeMessage: "The founder chooses a softer version before copying the reply.",
+        }));
+      }, 20400),
+      window.setTimeout(() => {
+        setState((current) => ({
+          ...current,
+          approvalState: "copied",
+          activeStage: "Draft copied",
+          activeMessage: "The first reply is ready to paste manually into the original thread.",
+        }));
+      }, 22200),
+      window.setTimeout(() => {
+        setState((current) => ({
+          ...current,
+          selectedOpportunityId: "x-ai-receptionist",
+          rewriteVariant: undefined,
+          approvalState: "reviewing",
+          activeStage: "Streaming next matches",
+          activeMessage: "The agent keeps searching while the user reviews the next best item.",
+        }));
+      }, 23800),
+    ];
+
+    return () => [...timers, ...interactionTimers].forEach(window.clearTimeout);
   }, [isRunning]);
 
   const elapsed = useElapsed(startedAt);

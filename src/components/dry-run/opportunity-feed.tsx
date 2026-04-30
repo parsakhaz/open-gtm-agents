@@ -10,10 +10,21 @@ import type { OpportunityCard } from "@/lib/dry-run/types";
 import { cn } from "@/lib/utils";
 import { SourceIcon, sourceLabel } from "./source-icon";
 
-export function OpportunityFeed({ visibleIds }: { visibleIds: string[] }) {
+export function OpportunityFeed({
+  visibleIds,
+  selectedId,
+  rewriteVariant,
+  approvalState,
+}: {
+  visibleIds: string[];
+  selectedId?: string;
+  rewriteVariant?: keyof OpportunityCard["variants"];
+  approvalState?: "idle" | "reviewing" | "rewriting" | "copied";
+}) {
   const visible = opportunities.filter((opportunity) => visibleIds.includes(opportunity.id));
   const [selected, setSelected] = useState<OpportunityCard | null>(null);
-  const active = selected ?? visible[0] ?? null;
+  const scriptedSelected = visible.find((opportunity) => opportunity.id === selectedId);
+  const active = scriptedSelected ?? selected ?? visible[0] ?? null;
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
@@ -82,7 +93,11 @@ export function OpportunityFeed({ visibleIds }: { visibleIds: string[] }) {
         )}
       </div>
 
-      <OpportunityDetail opportunity={active} />
+      <OpportunityDetail
+        opportunity={active}
+        scriptedVariant={active?.id === selectedId ? rewriteVariant : undefined}
+        approvalState={active?.id === selectedId ? approvalState : undefined}
+      />
     </div>
   );
 }
@@ -134,12 +149,21 @@ function QueueMetric({ label, value }: { label: string; value: number }) {
   );
 }
 
-function OpportunityDetail({ opportunity }: { opportunity: OpportunityCard | null }) {
+function OpportunityDetail({
+  opportunity,
+  scriptedVariant,
+  approvalState,
+}: {
+  opportunity: OpportunityCard | null;
+  scriptedVariant?: keyof OpportunityCard["variants"];
+  approvalState?: "idle" | "reviewing" | "rewriting" | "copied";
+}) {
   const [variant, setVariant] = useState<keyof OpportunityCard["variants"] | "default">("default");
   const draft = useMemo(() => {
     if (!opportunity) return "";
-    return variant === "default" ? opportunity.draft : opportunity.variants[variant];
-  }, [opportunity, variant]);
+    const activeVariant = scriptedVariant ?? variant;
+    return activeVariant === "default" ? opportunity.draft : opportunity.variants[activeVariant];
+  }, [opportunity, scriptedVariant, variant]);
 
   if (!opportunity) {
     return (
@@ -165,6 +189,9 @@ function OpportunityDetail({ opportunity }: { opportunity: OpportunityCard | nul
           {sourceLabel(opportunity.source)}
         </Badge>
         <TypeBadge type={opportunity.type} />
+        {approvalState === "reviewing" && <Badge variant="outline">User reviewing</Badge>}
+        {approvalState === "rewriting" && <Badge variant="warning">Refining draft</Badge>}
+        {approvalState === "copied" && <Badge variant="success">Copied</Badge>}
       </div>
       <h3 className="text-lg font-semibold tracking-normal">{opportunity.title}</h3>
       <p className="mt-3 text-sm leading-6 text-muted-foreground">{opportunity.rationale}</p>
@@ -196,7 +223,7 @@ function OpportunityDetail({ opportunity }: { opportunity: OpportunityCard | nul
       <div className="mt-4 flex gap-2">
         <Button className="flex-1">
           <Copy className="h-4 w-4" />
-          Copy
+          {approvalState === "copied" ? "Copied" : "Copy"}
         </Button>
         <Button variant="outline" className="flex-1">
           <ArrowUpRight className="h-4 w-4" />

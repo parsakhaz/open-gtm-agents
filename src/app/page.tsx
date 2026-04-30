@@ -169,7 +169,12 @@ export default function Home() {
                     />
                     <MonitoringSummary complete={state.phase === "complete"} />
                   </div>
-                  <OpportunityFeed visibleIds={state.opportunityIds} />
+                  <OpportunityFeed
+                    visibleIds={state.opportunityIds}
+                    selectedId={state.selectedOpportunityId}
+                    rewriteVariant={state.rewriteVariant}
+                    approvalState={state.approvalState}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
