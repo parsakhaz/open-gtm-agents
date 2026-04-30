@@ -38,7 +38,7 @@ export function SchemaStreamPanel({
               animate={{ opacity: 1, y: 0, height: "auto" }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.35 }}
-              className="rounded-lg border bg-card p-3 shadow-sm"
+              className="flex h-full min-h-[210px] flex-col rounded-lg border bg-card p-3 shadow-sm"
             >
               <div className="mb-2 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm font-semibold">
@@ -50,15 +50,17 @@ export function SchemaStreamPanel({
               <p className="text-sm leading-6 text-muted-foreground">{section.answer}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {section.suggestions.map((suggestion) => (
-                  <button
+                  <span
                     key={suggestion}
-                    className="cursor-pointer rounded-full border bg-[#f9fbf8] px-2.5 py-1 text-[11px] font-medium text-[#315f4d] transition hover:border-primary"
+                    className="rounded-full border bg-muted/35 px-2.5 py-1 text-[11px] font-medium text-muted-foreground"
                   >
-                    + {suggestion}
-                  </button>
+                    {suggestion}
+                  </span>
                 ))}
               </div>
-              <div className="mt-3 text-[11px] text-muted-foreground">Source: {section.source}</div>
+              <div className="mt-auto pt-3 text-[10px] font-medium text-muted-foreground/55">
+                {section.source}
+              </div>
             </motion.div>
           ))}
         </AnimatePresence>
