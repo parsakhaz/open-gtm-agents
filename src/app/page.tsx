@@ -9,7 +9,6 @@ import {
   Mail,
   Radar,
   RefreshCcw,
-  Sparkles,
 } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { SimpleIcon } from "@/components/brand/simple-icon";
@@ -124,6 +123,7 @@ export default function Home() {
                 searches={state.searches}
                 activeStage={state.activeStage}
                 activeMessage={state.activeMessage}
+                ready={gate === "research"}
               />
             ) : (
               <motion.div
@@ -152,10 +152,12 @@ function ResearchBoard({
   searches,
   activeStage,
   activeMessage,
+  ready,
 }: {
   searches: Array<{ source: "reddit" | "x" | "hacker_news" | "github" | "web" | "resend"; query: string }>;
   activeStage: string;
   activeMessage: string;
+  ready: boolean;
 }) {
   const groups = groupedSearches(searches);
   const totalQueries = groups.reduce((count, group) => count + group.keywords.length, 0);
@@ -169,17 +171,12 @@ function ResearchBoard({
     >
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl">
-          <Badge variant="success" className="mb-3 gap-1">
-            <Sparkles className="h-3 w-3" />
-            Live research
-          </Badge>
           <h2 className="text-3xl font-semibold tracking-normal">{activeStage}</h2>
           <p className="mt-2 text-base leading-7 text-muted-foreground">{activeMessage}</p>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2">
           <ResearchMetric label="Sources" value={groups.length} />
           <ResearchMetric label="Queries" value={totalQueries} />
-          <ResearchMetric label="Matches" value="live" />
         </div>
       </div>
 
@@ -201,10 +198,16 @@ function ResearchBoard({
                   </div>
                   <div>
                     <div className="text-sm font-semibold">{sourceLabel(group.source)}</div>
-                    <div className="text-xs text-muted-foreground">Searching relevant conversations</div>
+                    <div className="text-xs text-muted-foreground">
+                      {ready ? "Search complete" : "Searching relevant conversations"}
+                    </div>
                   </div>
                 </div>
-                <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" />
+                {ready ? (
+                  <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
+                ) : (
+                  <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" />
+                )}
               </div>
               <div className="space-y-2">
                 {group.keywords.map((keyword) => (
@@ -274,11 +277,11 @@ function ConnectingPanel({
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mx-auto w-full max-w-5xl"
+        className="mx-auto w-full max-w-7xl"
       >
-        <div className="grid min-h-[500px] items-center gap-8 lg:grid-cols-[minmax(0,1fr)_260px]">
+        <div className="grid min-h-[600px] items-center gap-8 lg:grid-cols-[minmax(0,1fr)_250px]">
           <div className="overflow-hidden rounded-lg border border-[#e8ded7] bg-[#fdfaf5] shadow-md">
-            <div className="flex h-10 items-center gap-3 border-b bg-[#f6f0ea] px-4">
+            <div className="flex h-11 items-center gap-3 border-b bg-[#f6f0ea] px-4">
               <div className="flex gap-1.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-[#ff6b5f]" />
                 <span className="h-2.5 w-2.5 rounded-full bg-[#f3bf4f]" />
@@ -288,7 +291,7 @@ function ConnectingPanel({
                 salonagent.ai
               </div>
             </div>
-            <div className="grid h-[320px] place-items-center bg-[#fffaf4] px-10 text-center">
+            <div className="grid h-[560px] place-items-center bg-[#fffaf4] px-10 text-center">
               <div>
                 <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm">
                   <Radar className="h-6 w-6 text-[#2e8b64]" />
@@ -355,7 +358,7 @@ function ConnectingPanel({
           </div>
         </div>
 
-        <div className="mx-auto mt-6 max-w-5xl">
+        <div className="mx-auto mt-6 max-w-7xl">
           <SchemaStreamPanel visibleIds={visibleIds} compact />
         </div>
       </motion.div>
