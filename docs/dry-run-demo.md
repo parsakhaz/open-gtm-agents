@@ -332,15 +332,19 @@ Current state:
 - Discovery uses a calmer review-deck layout instead of a dense three-column dashboard.
 - Comment opportunities, original post ideas, and competitive insights stream into an incoming queue.
 - The selected opportunity has a focused review panel with rationale, fit/risk, suggested action, draft, rewrite variants, copy, and open actions.
+- The Post now action is wired to the local browser companion through `/api/browser/post-comment`.
 - Simple Icons are used for source logos, lucide icons are used for interface actions, and Framer Motion drives staged transitions.
 - A seeded `/api/research/run` endpoint exists for NDJSON-style research events.
 - The OpenAI-backed web researcher path has been smoke-tested with a cited research artifact at [research/2026-04-30-web-nextjs-turbopack.md](research/2026-04-30-web-nextjs-turbopack.md).
+- Browser missions now run through the local Edge/Chrome CDP relay with orchestrator, browser-agent, relay, and CDP logs. See [browser-use.md](browser-use.md).
 - A Supabase schema exists for product profiles, runs, events, source results, opportunities, drafts, and feedback.
 
 Verification completed:
 
 - `npm run lint`
 - `npm run build`
+- `npm run dev:local`
+- `npm run browser:mission -- --mission "do something fun on the browser for me surprise me" --start-url "https://neal.fun/" --max-turns 35`
 
 ## Deadline Priorities
 

@@ -211,6 +211,7 @@ It includes:
 - Streamed comment opportunities, original post ideas, and competitive insights
 - Focused review deck with rewrite/copy/open actions
 - Seeded and OpenAI-backed research API route
+- Local browser companion flow for approved browser missions and dry-run Post now actions
 - OpenAI-backed web researcher verified with a cited web research smoke test at [docs/research/2026-04-30-web-nextjs-turbopack.md](docs/research/2026-04-30-web-nextjs-turbopack.md)
 - Supabase client helpers
 - Supabase schema applied to the linked remote project
@@ -221,7 +222,11 @@ Verified with:
 - `npm run lint`
 - `npm run build`
 - `npm run test:web-researcher`
+- `npm run dev:local`
+- `npm run browser:mission -- --mission "do something fun on the browser for me surprise me" --start-url "https://neal.fun/" --max-turns 35`
 - Manual web research call using official Next.js sources
+
+See [docs/browser-use.md](docs/browser-use.md) for the browser companion, mission runner, logging, and local test workflow.
 
 ## Local Development
 
@@ -234,15 +239,20 @@ npm run dev:local
 By default it:
 
 - pulls `.env.local` from the linked Vercel development environment when the file is missing
-- starts Next.js at `http://127.0.0.1:3000`
-- starts the Electron browser companion relay at `http://127.0.0.1:4123`
-- keeps the browser posting model from `.env.local`, currently `OPENAI_MODEL=gpt-5.4-mini`
+- loads `.env` and `.env.local` into the parent runner process
+- stops stale Next dev processes for this worktree
+- starts Next.js at `http://127.0.0.1:3000`, or the next available port
+- starts the Electron browser companion relay at `http://127.0.0.1:4123`, or the next available port
+- passes the selected `BROWSER_RELAY_URL` into Next
+- keeps the browser mission model from `.env.local`, currently `OPENAI_MODEL=gpt-5.4-mini`
 
 Useful options:
 
 ```bash
 npm run dev:local -- --port 3003
+npm run dev:local -- --relay-port 4125
 npm run dev:local -- --env pull
 npm run dev:local -- --desktop false
+npm run browser:mission -- --mission "do something harmless and fun in the browser" --start-url "https://neal.fun/" --max-turns 35
 VERCEL_PROJECT=open-gtm-agents VERCEL_SCOPE=parsas npm run dev:local
 ```

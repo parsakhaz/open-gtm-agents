@@ -26,6 +26,8 @@ OPENAI_FAST_MODEL
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE_KEY
+BROWSER_RELAY_URL
+BROWSER_RELAY_PORT
 ```
 
 Optional environment variables:
@@ -39,6 +41,26 @@ keys are missing. OpenAI and Supabase runtime variables are configured in Vercel
 for production and development. The OpenAI-backed web researcher path has been
 smoke-tested successfully with a cited web research artifact at
 [`docs/research/2026-04-30-web-nextjs-turbopack.md`](research/2026-04-30-web-nextjs-turbopack.md).
+
+## Browser Companion
+
+Local browser use depends on the Electron companion and the user's existing Chrome or Edge CDP session.
+
+Use:
+
+```bash
+npm run dev:local
+```
+
+The runner pulls `.env.local` from Vercel when missing, loads `.env` and `.env.local`, stops stale Next dev processes for the worktree, picks available ports, starts Next.js, and starts the browser relay.
+
+The generic mission runner is:
+
+```bash
+npm run browser:mission -- --mission "do something harmless and fun in the browser" --start-url "https://neal.fun/" --max-turns 35
+```
+
+Browser use logs should be checked in `tmp/dev-local.out.log`, `tmp/dev-local.err.log`, `tmp/browser-mission-test.log`, and `.next/dev/logs/next-development.log`.
 
 ## Supabase
 

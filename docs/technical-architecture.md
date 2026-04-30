@@ -13,6 +13,7 @@ The first architecture should avoid unnecessary infrastructure while still suppo
 - Hourly recurring research
 - Resend email notifications
 - Human-reviewed draft responses
+- Local browser-assisted execution for approved user actions
 - A polished dry-run mode for the hackathon demo
 
 ## Stack
@@ -175,6 +176,25 @@ Likely source implementations:
 
 Official posting APIs are not required for the first version. The product should draft comments and posts for manual user approval.
 
+## Browser Companion
+
+Approved browser actions use a local companion rather than platform posting APIs.
+
+The current flow is:
+
+1. The dry-run UI sends an approved action to `/api/browser/post-comment`.
+2. `BrowserOrchestratorService` turns that request into a constrained browser mission.
+3. `BrowserAgentService.runMission` executes the mission with OpenAI Responses API function calls.
+4. Next.js sends CDP commands to the local Electron relay.
+5. The relay controls the user's existing Chrome or Edge CDP session.
+6. The API streams status, tool, retry, handoff, and final result events back to the UI.
+
+The browser executor uses `gpt-5.4-mini` with high reasoning effort and a 35-turn mission budget. The orchestrator layer uses `OPENAI_HIGH_QUALITY_MODEL` or `gpt-5.5` as the high-quality planning model.
+
+The design deliberately keeps state-changing actions constrained. Browser missions must stop for login, captcha, missing permissions, credentials, ambiguous destructive confirmations, or unsafe actions. Generic browser missions are available through `npm run browser:mission`, but the default constraints prohibit posting, messaging, following, buying, downloading, signing in, or changing settings.
+
+See [browser-use.md](browser-use.md) for local run commands, logs, and test notes.
+
 ## Agent Services
 
 The system can be organized as small services rather than a heavy multi-agent framework.
@@ -190,6 +210,8 @@ Suggested services:
 - `DraftGenerator`
 - `NotificationService`
 - `DryRunService`
+- `BrowserOrchestratorService`
+- `BrowserAgentService`
 
 The internal web researcher sits behind a stable interface. It can have a dynamic internal schema, but the product should receive normalized findings, sources, and streamed events.
 
@@ -297,6 +319,7 @@ Implemented:
 - Seeded rewrite variants and approval/copy actions.
 - Seeded and OpenAI-backed research service with NDJSON API route.
 - OpenAI-backed web researcher smoke test saved at [research/2026-04-30-web-nextjs-turbopack.md](research/2026-04-30-web-nextjs-turbopack.md).
+- Local browser companion relay, generic browser mission service, and dry-run Post now integration.
 - Supabase SQL schema applied to the linked remote project.
 
 Verified:
@@ -304,4 +327,6 @@ Verified:
 - `npm run lint`
 - `npm run build`
 - `npm run test:web-researcher`
+- `npm run dev:local`
+- `npm run browser:mission -- --mission "do something fun on the browser for me surprise me" --start-url "https://neal.fun/" --max-turns 35`
 - Manual web research call using official Next.js sources
