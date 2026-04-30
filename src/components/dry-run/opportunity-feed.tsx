@@ -27,8 +27,7 @@ export function OpportunityFeed({
   const active = scriptedSelected ?? selected ?? visible[0] ?? null;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_420px]">
-      <div className="space-y-3">
+    <div className="space-y-3">
         <div className="rounded-lg border bg-card/85 p-4 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
@@ -50,17 +49,21 @@ export function OpportunityFeed({
             const isActive = active?.id === opportunity.id;
 
             return (
-              <motion.button
+              <motion.div
                 key={opportunity.id}
                 initial={{ opacity: 0, y: 18, scale: 0.98 }}
                 animate={{ opacity: isActive ? 1 : 0.72, y: 0, scale: 1 }}
                 transition={{ duration: 0.28 }}
-                onClick={() => setSelected(opportunity)}
                 className={cn(
-                  "w-full cursor-pointer rounded-lg border bg-card p-4 text-left shadow-sm transition hover:opacity-100 hover:shadow-md",
+                  "rounded-lg border bg-card shadow-sm transition hover:opacity-100 hover:shadow-md",
                   isActive && "border-primary/50 bg-primary/10",
                 )}
               >
+                <button
+                  type="button"
+                  onClick={() => setSelected(opportunity)}
+                  className="w-full cursor-pointer p-4 text-left"
+                >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -81,7 +84,15 @@ export function OpportunityFeed({
                     <Score label="Risk" value={opportunity.risk} inverse />
                   </div>
                 </div>
-              </motion.button>
+                </button>
+                {isActive && (
+                  <OpportunityDetail
+                    opportunity={opportunity}
+                    scriptedVariant={opportunity.id === selectedId ? rewriteVariant : undefined}
+                    approvalState={opportunity.id === selectedId ? approvalState : undefined}
+                  />
+                )}
+              </motion.div>
             );
           })}
         </AnimatePresence>
@@ -91,13 +102,6 @@ export function OpportunityFeed({
             Opportunities will stream in as the agent searches.
           </div>
         )}
-      </div>
-
-      <OpportunityDetail
-        opportunity={active}
-        scriptedVariant={active?.id === selectedId ? rewriteVariant : undefined}
-        approvalState={active?.id === selectedId ? approvalState : undefined}
-      />
     </div>
   );
 }
@@ -177,11 +181,11 @@ function OpportunityDetail({
   }
 
   return (
-    <motion.aside
+    <motion.div
       key={opportunity.id}
-      initial={{ opacity: 0, x: 12 }}
-      animate={{ opacity: 1, x: 0 }}
-      className="sticky top-4 h-fit rounded-lg border bg-card p-5 shadow-sm"
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      className="border-t bg-background/70 p-4"
     >
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Badge variant="outline" className="gap-1">
@@ -193,43 +197,43 @@ function OpportunityDetail({
         {approvalState === "rewriting" && <Badge variant="warning">Making it natural</Badge>}
         {approvalState === "copied" && <Badge variant="success">Copied</Badge>}
       </div>
-      <h3 className="text-lg font-semibold tracking-normal">{opportunity.title}</h3>
-      <p className="mt-3 text-sm leading-6 text-muted-foreground">{opportunity.rationale}</p>
-      <div className="mt-4 rounded-md border bg-muted/30 p-3">
-        <div className="mb-2 text-xs font-semibold text-muted-foreground">Suggested action</div>
-        <p className="text-sm leading-6">{opportunity.action}</p>
-      </div>
-      <div className="mt-4">
-        <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          <Sparkles className="h-4 w-4 text-primary-foreground" />
-          Draft
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_330px]">
+        <div className="rounded-md border bg-card p-3">
+          <div className="mb-2 text-xs font-semibold text-muted-foreground">Suggested action</div>
+          <p className="text-sm leading-6">{opportunity.action}</p>
         </div>
-        <motion.div
-          key={`${opportunity.id}-${variant}`}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-md border bg-background p-3 text-sm leading-6 text-muted-foreground"
-        >
-          {draft}
-        </motion.div>
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+            <Sparkles className="h-4 w-4 text-primary-foreground" />
+            Draft
+          </div>
+          <motion.div
+            key={`${opportunity.id}-${variant}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-md border bg-card p-3 text-sm leading-6 text-muted-foreground"
+          >
+            {draft}
+          </motion.div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {(["shorter", "softer", "technical", "direct"] as const).map((item) => (
+              <Button key={item} variant="outline" size="sm" onClick={() => setVariant(item)}>
+                {item}
+              </Button>
+            ))}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <Button className="flex-1">
+              <Copy className="h-4 w-4" />
+              {approvalState === "copied" ? "Copied" : "Copy"}
+            </Button>
+            <Button variant="outline" className="flex-1">
+              <ArrowUpRight className="h-4 w-4" />
+              Open
+            </Button>
+          </div>
+        </div>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        {(["shorter", "softer", "technical", "direct"] as const).map((item) => (
-          <Button key={item} variant="outline" size="sm" onClick={() => setVariant(item)}>
-            {item}
-          </Button>
-        ))}
-      </div>
-      <div className="mt-4 flex gap-2">
-        <Button className="flex-1">
-          <Copy className="h-4 w-4" />
-          {approvalState === "copied" ? "Copied" : "Copy"}
-        </Button>
-        <Button variant="outline" className="flex-1">
-          <ArrowUpRight className="h-4 w-4" />
-          Open
-        </Button>
-      </div>
-    </motion.aside>
+    </motion.div>
   );
 }
