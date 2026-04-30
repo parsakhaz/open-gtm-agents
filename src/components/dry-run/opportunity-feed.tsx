@@ -169,12 +169,21 @@ function OpportunityDetail({
 }) {
   const [variant, setVariant] = useState<keyof OpportunityCard["variants"] | "default">("default");
   const [copiedDraft, setCopiedDraft] = useState("");
-  const draft = useMemo(() => {
+  const generatedDraft = useMemo(() => {
     if (!opportunity) return "";
     const activeVariant = scriptedVariant ?? variant;
     return activeVariant === "default" ? opportunity.draft : opportunity.variants[activeVariant];
   }, [opportunity, scriptedVariant, variant]);
+  const [editedDrafts, setEditedDrafts] = useState<Record<string, string>>({});
+  const draft = opportunity ? editedDrafts[opportunity.id] ?? generatedDraft : "";
   const copied = copiedDraft === draft || approvalState === "copied";
+
+  function applyVariant(nextVariant: keyof OpportunityCard["variants"] | "default") {
+    if (!opportunity) return;
+    setVariant(nextVariant);
+    const nextDraft = nextVariant === "default" ? opportunity.draft : opportunity.variants[nextVariant];
+    setEditedDrafts((current) => ({ ...current, [opportunity.id]: nextDraft }));
+  }
 
   if (!opportunity) {
     return (
@@ -192,7 +201,7 @@ function OpportunityDetail({
       key={opportunity.id}
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
-      className="border-t bg-background/70 p-4"
+      className="border-t bg-background/60 p-4"
     >
       {(approvalState === "rewriting" || approvalState === "copied") && (
         <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -200,40 +209,63 @@ function OpportunityDetail({
           {approvalState === "copied" && <Badge variant="success">Copied</Badge>}
         </div>
       )}
-      <div className="mb-4 rounded-md border bg-card px-3 py-2 text-sm leading-6">
-        <span className="mr-2 font-semibold">Suggested action:</span>
-        <span className="text-muted-foreground">{opportunity.action}</span>
-      </div>
-      <div className="mb-4 grid gap-2 md:grid-cols-3">
-        {opportunity.reasoning.map((reason) => (
-          <div key={reason} className="rounded-md border bg-card px-3 py-2 text-xs leading-5 text-muted-foreground">
-            <CheckCircle2 className="mr-1.5 inline h-3.5 w-3.5 text-primary-foreground" />
-            {reason}
+
+      <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="rounded-lg border bg-card p-3">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <SourceIcon source={opportunity.source} className="h-3.5 w-3.5" />
+              Source
+            </div>
+            {opportunity.sourceContent.context && (
+              <span className="truncate text-xs text-muted-foreground">{opportunity.sourceContent.context}</span>
+            )}
           </div>
-        ))}
+          <p className="line-clamp-4 text-sm leading-6 text-muted-foreground">
+            {opportunity.sourceContent.body}
+          </p>
+          {opportunity.sourceContent.author && (
+            <div className="mt-2 text-xs font-medium text-muted-foreground">{opportunity.sourceContent.author}</div>
+          )}
+        </div>
+
+        <div className="rounded-lg border bg-card p-3">
+          <div className="mb-2 text-xs font-semibold text-muted-foreground">Summary</div>
+          <p className="text-sm leading-6 text-muted-foreground">{opportunity.rationale}</p>
+        </div>
       </div>
-      <div>
-        <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-          <Sparkles className="h-4 w-4 text-primary-foreground" />
-          Draft
+
+      <div className="rounded-lg border bg-card p-3 shadow-sm">
+        <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Sparkles className="h-4 w-4 text-primary-foreground" />
+            Draft
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(["shorter", "softer", "technical", "direct"] as const).map((item) => (
+              <Button
+                key={item}
+                variant={variant === item ? "secondary" : "outline"}
+                size="sm"
+                className="h-8 border px-3 capitalize shadow-sm"
+                onClick={() => applyVariant(item)}
+              >
+                {item}
+              </Button>
+            ))}
+          </div>
         </div>
-        <motion.div
-          key={`${opportunity.id}-${variant}`}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-md border bg-card p-3 text-sm leading-6 text-muted-foreground"
-        >
-          {draft}
-        </motion.div>
-        <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-          {(["shorter", "softer", "technical", "direct"] as const).map((item) => (
-            <Button key={item} variant="outline" size="sm" onClick={() => setVariant(item)}>
-              {item}
-            </Button>
-          ))}
-        </div>
-        <div className="mt-3 grid gap-2 md:grid-cols-2">
-          <div className="md:col-span-2">
+        <textarea
+          value={draft}
+          onChange={(event) => {
+            setEditedDrafts((current) => ({ ...current, [opportunity.id]: event.target.value }));
+          }}
+          className="min-h-[128px] w-full resize-y rounded-md border bg-background p-3 text-sm leading-7 text-foreground shadow-inner outline-none transition focus:border-primary/60 focus:ring-2 focus:ring-primary/25"
+          aria-label="Editable draft"
+        />
+
+        <div className="mt-4 flex flex-col gap-2 md:flex-row md:items-start">
+          <div className="min-w-0 flex-1">
             <BrowserPostActions
               url={opportunity.url}
               comment={draft}
@@ -241,7 +273,8 @@ function OpportunityDetail({
             />
           </div>
           <Button
-            className="md:col-span-2"
+            variant="outline"
+            className="md:w-40"
             onClick={async () => {
               await navigator.clipboard?.writeText(draft);
               setCopiedDraft(draft);

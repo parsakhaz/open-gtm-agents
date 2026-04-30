@@ -1,8 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, Sparkles } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { CheckCircle2 } from "lucide-react";
 import { schemaSections } from "@/lib/dry-run/demo-data";
 
 export function SchemaStreamPanel({
@@ -23,10 +22,6 @@ export function SchemaStreamPanel({
             <div className="text-xs font-semibold text-muted-foreground">GTM profile</div>
             <h2 className="mt-1 text-lg font-semibold tracking-normal">What we learned</h2>
           </div>
-          <Badge variant="success" className="gap-1">
-            <Sparkles className="h-3 w-3" />
-            Live
-          </Badge>
         </div>
       </div>
       <div className={`min-h-0 flex-1 gap-3 overflow-y-auto p-4 ${compact ? "grid md:grid-cols-2 xl:grid-cols-3" : "space-y-3"}`}>
@@ -45,7 +40,6 @@ export function SchemaStreamPanel({
                   <CheckCircle2 className="h-4 w-4 text-[#2e8b64]" />
                   {section.label}
                 </div>
-                <Badge variant="outline">{section.confidence}%</Badge>
               </div>
               <p className="text-sm leading-6 text-muted-foreground">{section.answer}</p>
               <div className="mt-3 flex flex-wrap gap-2">

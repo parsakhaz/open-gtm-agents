@@ -141,42 +141,17 @@ export const schemaSections: SchemaSection[] = [
 
 export const opportunities: OpportunityCard[] = [
   {
-    id: "reddit-missed-calls",
-    type: "comment",
-    source: "reddit",
-    title: "Dry-run Reddit posting test",
-    location: "r/test",
-    url: "https://www.reddit.com/r/test/comments/10f5cnk/rtest/",
-    rationale:
-      "This card points at a real Reddit test thread so the demo can safely exercise the Post now browser workflow.",
-    action: "Post the prepared test comment on the Reddit test thread.",
-    draft:
-      "Testing Open GTM Agents browser posting flow from a local demo. Please ignore.",
-    fit: 94,
-    risk: 18,
-    reasoning: [
-      "Safe demo target: Reddit test thread",
-      "Action path: browser posting workflow",
-      "Risk contained: explicit dry-run copy",
-    ],
-    variants: {
-      shorter:
-        "Testing Open GTM Agents browser posting flow. Please ignore.",
-      softer:
-        "Quick local demo test from Open GTM Agents. Please ignore.",
-      technical:
-        "CDP browser automation test from Open GTM Agents local demo. Please ignore.",
-      direct:
-        "Open GTM Agents browser posting test. Please ignore.",
-    },
-  },
-  {
     id: "x-ai-receptionist",
     type: "comment",
     source: "x",
     title: "AI receptionists are underrated for local businesses",
     location: "X search",
     url: "https://x.com/example/status/1",
+    sourceContent: {
+      author: "@localops",
+      body: "AI receptionists are underrated for local businesses. The biggest unlock is not replacing staff, it is making sure high-intent calls do not disappear when nobody can pick up.",
+      context: "Thread discussing AI receptionists for local services",
+    },
     rationale:
       "The thread is already discussing local service AI receptionists, and salons are a concrete vertical example with obvious urgency.",
     action: "Add a specific salon use case and avoid sounding like a launch announcement.",
@@ -207,6 +182,11 @@ export const opportunities: OpportunityCard[] = [
     title: "Original post idea: The best AI agent wedge is missed revenue, not automation",
     location: "Hacker News discussion",
     url: "https://news.ycombinator.com/item?id=example",
+    sourceContent: {
+      author: "HN discussion",
+      body: "What are the AI agent use cases that are actually useful for small businesses today? Most examples still feel like demos instead of workflows someone would pay for.",
+      context: "Founder discussion about practical AI agents",
+    },
     rationale:
       "HN is discussing practical AI agents. A concrete salon missed-call case study would be more credible than a generic agent essay.",
     action: "Write a short founder post with the salon missed-call workflow as the example.",
@@ -237,6 +217,11 @@ export const opportunities: OpportunityCard[] = [
     title: "Issue: Need SMS fallback when booking request is missed",
     location: "open-source-booking/issues",
     url: "https://github.com/example/open-source-booking/issues/42",
+    sourceContent: {
+      author: "maintainer",
+      body: "We need a fallback when a booking request starts by phone and nobody answers. Ideally the system should send an SMS and let the customer finish the request asynchronously.",
+      context: "GitHub issue about booking workflow gaps",
+    },
     rationale:
       "A developer is discussing SMS fallback in a booking workflow. This is a technical path into the same pain, with lower promotional risk.",
     action: "Share the trigger-and-handoff pattern without pitching too hard.",
@@ -267,6 +252,11 @@ export const opportunities: OpportunityCard[] = [
     title: "Competitor pattern: generic answering services are not booking-aware",
     location: "Web research",
     url: "https://example.com/answering-services",
+    sourceContent: {
+      author: "Market scan",
+      body: "Several answering services position around never missing a call, but their pages rarely explain service selection, appointment intent, or booking handoff for salons.",
+      context: "Competitive positioning research",
+    },
     rationale:
       "Many alternatives answer phones but do not position around salon-specific booking intent, giving Salon Agent a sharper wedge.",
     action: "Use this in positioning and post ideas.",
@@ -350,7 +340,6 @@ export const dryRunEvents: DryRunEvent[] = [
   { type: "status", at: 18100, stage: "Looking for conversations", message: "Searching for people already talking about this problem." },
   { type: "source_search", at: 18900, source: "reddit", query: "salon missed calls receptionist alternative" },
   { type: "source_search", at: 19900, source: "x", query: "AI receptionist local business salon" },
-  { type: "opportunity", at: 20900, cardId: "reddit-missed-calls" },
   { type: "source_search", at: 24800, source: "hacker_news", query: "AI agents local businesses missed revenue" },
   { type: "opportunity", at: 26000, cardId: "x-ai-receptionist" },
   { type: "source_search", at: 27200, source: "github", query: "booking SMS missed call issue" },
@@ -359,6 +348,5 @@ export const dryRunEvents: DryRunEvent[] = [
   { type: "source_search", at: 31200, source: "web", query: "salon answering service booking follow up" },
   { type: "opportunity", at: 32600, cardId: "competitive-answering-service" },
   { type: "status", at: 34000, stage: "Ready for review", message: "Collecting the best finds so you can approve what to send." },
-  { type: "gate", at: 34800, gate: "research" },
   { type: "phase", at: 35600, phase: "complete" },
 ];

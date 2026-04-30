@@ -26,6 +26,11 @@ export type OpportunityCard = {
   title: string;
   location: string;
   url: string;
+  sourceContent: {
+    author?: string;
+    body: string;
+    context?: string;
+  };
   rationale: string;
   action: string;
   draft: string;
