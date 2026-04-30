@@ -221,9 +221,8 @@ Initial components to add:
 
 ### 2. Create Dry Run Data And Event Model
 
-Add seeded dry-run data for one hardcoded demo product.
-
-The product URL will be provided later. Until then, use a placeholder constant that can be swapped in one file.
+Add seeded dry-run data for one hardcoded demo product. The current demo uses
+Salon Agent as the example product.
 
 Suggested files:
 
@@ -478,4 +477,3 @@ Before implementation, confirm:
 - The hardcoded demo product URL.
 - Whether the dry run should use BeamBell, Salon Agent, or another product.
 - Whether to scaffold the Next.js app directly in the repo root.
-

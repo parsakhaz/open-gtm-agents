@@ -26,7 +26,7 @@ The current stack direction is:
 - Exa for website ingestion, web search, and source retrieval
 - Supabase for Postgres, auth, run state, and later pgvector
 - Resend for email notifications
-- xAI or the provided web researcher agent for broad web and social research
+- Internal OpenAI-backed web researcher service for broad web and social research
 - GitHub APIs for issue and repository search
 - Hacker News public APIs for Hacker News search
 - Apify or RapidAPI as fallback source providers if needed
@@ -170,7 +170,7 @@ Likely source implementations:
 - Exa for web search and website content
 - Hacker News Algolia API for Hacker News
 - GitHub Search API for GitHub issues, discussions, and repositories
-- xAI or the provided web researcher agent for Reddit, X, broad social search, and web search
+- Internal OpenAI-backed web researcher service for broad social search and web research
 - Apify or RapidAPI only as fallback providers where useful
 
 Official posting APIs are not required for the first version. The product should draft comments and posts for manual user approval.
@@ -270,11 +270,11 @@ This protects users from platform bans and keeps the product aligned with useful
 2. Landing page input and demo profile generation. Done with seeded dry-run data.
 3. Real Salon Agent iframe preview with desktop scaling and page-down style navigation. Done with fallback simulation.
 4. Opportunity and post suggestion cards. Done.
-5. Seeded research event API. Done at `/api/research/run`.
-6. Supabase schema for runs, profile fields, source results, opportunities, drafts, and feedback. Done.
-7. Exa website ingestion. Remaining.
-8. GTM profile inference with live model calls. Remaining.
-9. Web researcher or xAI source integration. Remaining.
+5. Seeded and live-capable research event API. Done at `/api/research/run`.
+6. Supabase schema for runs, profile fields, source results, opportunities, drafts, and feedback. Done and pushed to the linked remote project.
+7. OpenAI-backed web researcher with structured Responses API output. Done.
+8. Exa website ingestion. Remaining until `EXA_API_KEY` is configured.
+9. GTM profile inference with live model calls. Remaining.
 10. Hacker News and GitHub source adapters. Remaining.
 11. Resend approval email flow. Remaining.
 12. Vercel Cron hourly run. Remaining.
@@ -295,10 +295,11 @@ Implemented:
 - Streaming GTM schema panel.
 - Discovery review deck with opportunity queue and focused selected-item review.
 - Seeded rewrite variants and approval/copy actions.
-- Seeded research service and NDJSON API route.
-- Supabase SQL schema for the intended persistence model.
+- Seeded and OpenAI-backed research service with NDJSON API route.
+- Supabase SQL schema applied to the linked remote project.
 
 Verified:
 
 - `npm run lint`
 - `npm run build`
+- `npm run test:web-researcher`

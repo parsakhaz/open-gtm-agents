@@ -210,10 +210,13 @@ It includes:
 - Framer Motion transitions
 - Streamed comment opportunities, original post ideas, and competitive insights
 - Focused review deck with rewrite/copy/open actions
-- Seeded research API route
-- Supabase schema for the future durable data model
+- Seeded and OpenAI-backed research API route
+- Supabase client helpers
+- Supabase schema applied to the linked remote project
+- Vercel production deployment with OpenAI and Supabase environment variables
 
 Verified with:
 
 - `npm run lint`
 - `npm run build`
+- `npm run test:web-researcher`

@@ -16,21 +16,27 @@ vercel env ls
 vercel deploy
 ```
 
-Optional environment variables:
+Configured environment variables:
 
 ```bash
 OPENAI_API_KEY
 OPENAI_MODEL
 OPENAI_HIGH_QUALITY_MODEL
 OPENAI_FAST_MODEL
-EXA_API_KEY
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE_KEY
 ```
 
+Optional environment variables:
+
+```bash
+EXA_API_KEY
+```
+
 The research route intentionally falls back to seeded demo output when provider
-keys are missing.
+keys are missing. OpenAI and Supabase runtime variables are configured in Vercel
+for production and development.
 
 ## Supabase
 
@@ -46,16 +52,24 @@ supabase/migrations/20260430183000_initial_research_schema.sql
 The intended cloud project is `hejmyjuwpaencxyjnzrb`, exposed at
 `https://hejmyjuwpaencxyjnzrb.supabase.co`.
 
-Vercel has `NEXT_PUBLIC_SUPABASE_URL` and
-`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` configured for production and
-development.
+The local Supabase CLI is linked to `hejmyjuwpaencxyjnzrb`.
 
-The Supabase CLI still needs an access token before the local repo can link and
-push migrations:
+The remote database has the initial research schema applied:
 
 ```bash
-tmp/bin/supabase login --token <token>
-tmp/bin/supabase link --project-ref hejmyjuwpaencxyjnzrb
+tmp/bin/supabase migration list
+```
+
+Current migration state:
+
+```text
+Local          | Remote
+20260430183000 | 20260430183000
+```
+
+To push future migrations:
+
+```bash
 tmp/bin/supabase db push
 ```
 
