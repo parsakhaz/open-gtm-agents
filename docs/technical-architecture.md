@@ -266,15 +266,39 @@ This protects users from platform bans and keeps the product aligned with useful
 
 ## Near-Term Build Order
 
-1. Dry-run live run screen with polished streaming visuals
-2. Landing page input and demo profile generation
-3. Opportunity and post suggestion cards
-4. Supabase persistence for runs, events, profile fields, and opportunities
-5. Exa website ingestion
-6. GTM profile inference with editable fields
-7. Search angle generation
-8. Web researcher or xAI source integration
-9. Hacker News and GitHub source adapters
-10. Opportunity ranking and draft generation
-11. Resend approval email flow
-12. Vercel Cron hourly run
+1. Dry-run live run screen with polished streaming visuals. Done.
+2. Landing page input and demo profile generation. Done with seeded dry-run data.
+3. Real Salon Agent iframe preview with desktop scaling and page-down style navigation. Done with fallback simulation.
+4. Opportunity and post suggestion cards. Done.
+5. Seeded research event API. Done at `/api/research/run`.
+6. Supabase schema for runs, profile fields, source results, opportunities, drafts, and feedback. Done.
+7. Exa website ingestion. Remaining.
+8. GTM profile inference with live model calls. Remaining.
+9. Web researcher or xAI source integration. Remaining.
+10. Hacker News and GitHub source adapters. Remaining.
+11. Resend approval email flow. Remaining.
+12. Vercel Cron hourly run. Remaining.
+
+## Current Hackathon State
+
+The project now has a working Next.js dry-run frontend.
+
+Implemented:
+
+- Tailwind v4 theme with Supabase-inspired tokens.
+- shadcn-style local UI primitives.
+- Framer Motion transitions.
+- Simple Icons for platform logos.
+- lucide-react for interface actions.
+- Dry-run event state machine.
+- Live onboarding view with real Salon Agent iframe, desktop viewport scaling, and page-down style motion.
+- Streaming GTM schema panel.
+- Discovery review deck with opportunity queue and focused selected-item review.
+- Seeded rewrite variants and approval/copy actions.
+- Seeded research service and NDJSON API route.
+- Supabase SQL schema for the intended persistence model.
+
+Verified:
+
+- `npm run lint`
+- `npm run build`

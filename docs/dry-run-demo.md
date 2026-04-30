@@ -316,3 +316,37 @@ They should see:
 - Opportunities appearing live
 - Drafts ready for human approval
 - A clear recurring agent/email loop
+
+## Current Implementation Status
+
+The dry-run frontend is implemented as a Next.js app.
+
+Current state:
+
+- Landing page URL input starts the demo run.
+- Onboarding uses a browser-style preview pointed at the real Salon Agent website.
+- The live iframe is rendered at desktop viewport width and scaled into the preview so the page appears in desktop layout.
+- The iframe performs fast page-down style jumps as the agent moves through page sections.
+- A fallback simulated website preview is available from the preview chrome if iframe embedding fails.
+- GTM schema answers stream into the right-side panel with confidence, source hints, and suggestion chips.
+- Discovery uses a calmer review-deck layout instead of a dense three-column dashboard.
+- Comment opportunities, original post ideas, and competitive insights stream into an incoming queue.
+- The selected opportunity has a focused review panel with rationale, fit/risk, suggested action, draft, rewrite variants, copy, and open actions.
+- Simple Icons are used for source logos, lucide icons are used for interface actions, and Framer Motion drives staged transitions.
+- A seeded `/api/research/run` endpoint exists for NDJSON-style research events.
+- A Supabase schema exists for product profiles, runs, events, source results, opportunities, drafts, and feedback.
+
+Verification completed:
+
+- `npm run lint`
+- `npm run build`
+
+## Deadline Priorities
+
+With roughly 2.5 hours left, the highest-leverage next steps are:
+
+1. Run through the demo script end to end and tune timing.
+2. Confirm the iframe behaves reliably on the presentation machine.
+3. Add one screenshot-quality polish pass: spacing, text scale, and selected-card hierarchy.
+4. Wire the visible dry-run UI to the seeded research event API only if it does not risk destabilizing the demo.
+5. Prepare the two-minute judge narration around URL input, live site reading, streamed GTM profile, streamed opportunities, and human approval.

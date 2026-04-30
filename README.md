@@ -194,3 +194,26 @@ Current stack direction:
 See [docs/technical-architecture.md](docs/technical-architecture.md) for the working architecture.
 
 See [docs/dry-run-demo.md](docs/dry-run-demo.md) for the dry-run user journeys, judge pitch flow, and frontend-first demo plan.
+
+## Current Build Status
+
+The hackathon dry run is implemented as a Next.js frontend.
+
+It includes:
+
+- One-URL demo start flow
+- Real Salon Agent iframe preview with desktop scaling
+- Page-down style website navigation during onboarding
+- Streaming GTM schema answers
+- Source logos via Simple Icons
+- lucide interface icons
+- Framer Motion transitions
+- Streamed comment opportunities, original post ideas, and competitive insights
+- Focused review deck with rewrite/copy/open actions
+- Seeded research API route
+- Supabase schema for the future durable data model
+
+Verified with:
+
+- `npm run lint`
+- `npm run build`
