@@ -31,6 +31,7 @@ export type OpportunityCard = {
   draft: string;
   fit: number;
   risk: number;
+  reasoning: string[];
   variants: {
     shorter: string;
     softer: string;

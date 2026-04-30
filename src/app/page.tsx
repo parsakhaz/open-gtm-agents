@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
+  BellRing,
   CheckCircle2,
   Clock3,
   Loader2,
@@ -20,7 +21,7 @@ import { WebsitePreviewFrame } from "@/components/dry-run/website-preview-frame"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { demoUrl, schemaSections } from "@/lib/dry-run/demo-data";
+import { demoUrl, schemaSections, searchStrategy, skippedOpportunities } from "@/lib/dry-run/demo-data";
 import { useDryRun } from "@/lib/dry-run/use-dry-run";
 
 export default function Home() {
@@ -161,6 +162,7 @@ function ResearchBoard({
 }) {
   const groups = groupedSearches(searches);
   const totalQueries = groups.reduce((count, group) => count + group.keywords.length, 0);
+  const usefulCount = ready ? 5 : Math.min(5, Math.max(1, groups.length));
 
   return (
     <motion.div
@@ -174,13 +176,17 @@ function ResearchBoard({
           <h2 className="text-3xl font-semibold tracking-normal">{activeStage}</h2>
           <p className="mt-2 text-base leading-7 text-muted-foreground">{activeMessage}</p>
         </div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <ResearchMetric label="Sources" value={groups.length} />
           <ResearchMetric label="Queries" value={totalQueries} />
+          <ResearchMetric label="Useful" value={usefulCount} />
+          <ResearchMetric label="Skipped" value={ready ? skippedOpportunities.length : "..."} />
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <SearchStrategyCard />
+
+      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <AnimatePresence initial={false}>
           {groups.map((group, index) => (
             <motion.div
@@ -245,7 +251,71 @@ function ResearchBoard({
             </div>
           ))}
       </div>
+
+      <AnimatePresence initial={false}>
+        {ready && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 rounded-lg border bg-card p-4 shadow-sm"
+          >
+            <div className="mb-3 flex items-center justify-between gap-4">
+              <div>
+                <div className="text-xs font-semibold text-muted-foreground">Quality filter</div>
+                <h3 className="mt-1 text-base font-semibold tracking-normal">Skipped opportunities</h3>
+              </div>
+              <Badge variant="secondary">{skippedOpportunities.length} skipped</Badge>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              {skippedOpportunities.map((item) => (
+                <div key={item.title} className="rounded-md border bg-background p-3">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-muted-foreground">{item.source}</span>
+                    <Badge variant="outline">Skipped</Badge>
+                  </div>
+                  <div className="text-sm font-semibold">{item.title}</div>
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">{item.reason}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
+  );
+}
+
+function SearchStrategyCard() {
+  return (
+    <div className="rounded-lg border bg-card p-4 shadow-sm">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-xs font-semibold text-muted-foreground">Search strategy</div>
+          <h3 className="mt-1 text-base font-semibold tracking-normal">{searchStrategy.mode}</h3>
+        </div>
+        <Badge variant="outline">Review before hourly scans</Badge>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <StrategyColumn label="Channels" items={searchStrategy.channels} />
+        <StrategyColumn label="Query clusters" items={searchStrategy.queryClusters} />
+        <StrategyColumn label="Rules" items={searchStrategy.rules} />
+      </div>
+    </div>
+  );
+}
+
+function StrategyColumn({ label, items }: { label: string; items: string[] }) {
+  return (
+    <div>
+      <div className="mb-2 text-xs font-semibold text-muted-foreground">{label}</div>
+      <div className="flex flex-wrap gap-2">
+        {items.map((item) => (
+          <span key={item} className="rounded-full border bg-muted/35 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -406,6 +476,8 @@ function RunControls({
 }
 
 function MonitoringSummary({ complete }: { complete: boolean }) {
+  const [activated, setActivated] = useState(false);
+
   return (
     <div className="rounded-lg border bg-card p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
@@ -444,10 +516,16 @@ function MonitoringSummary({ complete }: { complete: boolean }) {
           Resend will email the founder with the highest-fit opportunities and link back here.
         </motion.div>
       )}
-      <Button variant="outline" className="mt-4 w-full">
-        View email preview
-        <ArrowRight className="h-4 w-4" />
-      </Button>
+      <div className="mt-4 grid gap-2 md:grid-cols-2">
+        <Button variant="outline">
+          View email preview
+          <ArrowRight className="h-4 w-4" />
+        </Button>
+        <Button onClick={() => setActivated(true)}>
+          {activated ? <CheckCircle2 className="h-4 w-4" /> : <BellRing className="h-4 w-4" />}
+          {activated ? "Hourly monitoring on" : "Turn on hourly monitoring"}
+        </Button>
+      </div>
     </div>
   );
 }

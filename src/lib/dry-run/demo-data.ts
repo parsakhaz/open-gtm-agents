@@ -144,25 +144,30 @@ export const opportunities: OpportunityCard[] = [
     id: "reddit-missed-calls",
     type: "comment",
     source: "reddit",
-    title: "How do you handle calls when everyone is with a client?",
-    location: "r/salonowners",
-    url: "https://reddit.com/r/salonowners/example",
+    title: "Dry-run Reddit posting test",
+    location: "r/test",
+    url: "https://www.reddit.com/r/test/comments/10f5cnk/rtest/",
     rationale:
-      "The poster is describing the exact missed-call workflow Salon Agent solves and is asking for practical tools, not broad marketing advice.",
-    action: "Reply with a transparent workflow suggestion and offer the product as one option.",
+      "This card points at a real Reddit test thread so the demo can safely exercise the Post now browser workflow.",
+    action: "Post the prepared test comment on the Reddit test thread.",
     draft:
-      "I work on a tool in this space, so biased, but the pattern that works best is instant SMS after a missed call. Even a simple message like 'Sorry we missed you, are you looking to book or ask a pricing question?' catches a lot of demand before they call another salon.",
+      "Testing Open GTM Agents browser posting flow from a local demo. Please ignore.",
     fit: 94,
     risk: 18,
+    reasoning: [
+      "Safe demo target: Reddit test thread",
+      "Action path: browser posting workflow",
+      "Risk contained: explicit dry-run copy",
+    ],
     variants: {
       shorter:
-        "The highest-leverage fix is usually instant SMS after a missed call. Ask whether they want to book or ask a pricing question before they move on to another salon.",
+        "Testing Open GTM Agents browser posting flow. Please ignore.",
       softer:
-        "One lightweight option is to text back automatically after missed calls. It does not need to be pushy; just a quick booking/pricing question can recover a surprising amount of intent.",
+        "Quick local demo test from Open GTM Agents. Please ignore.",
       technical:
-        "The workflow I would test is missed-call detection, SMS intent capture, and calendar handoff. You can build it manually with Twilio/Zapier or use a salon-specific assistant.",
+        "CDP browser automation test from Open GTM Agents local demo. Please ignore.",
       direct:
-        "This is exactly why we built Salon Agent: missed-call SMS follow-up for salons that cannot answer while serving clients. Happy to share the workflow if useful.",
+        "Open GTM Agents browser posting test. Please ignore.",
     },
   },
   {
@@ -179,6 +184,11 @@ export const opportunities: OpportunityCard[] = [
       "Salons are a great example because the person answering the phone is often also with a client. The best AI receptionist use case is not replacing the front desk; it is catching the high-intent missed call and turning it into a booking text.",
     fit: 87,
     risk: 24,
+    reasoning: [
+      "Pain match: local businesses miss high-intent calls",
+      "Audience match: salons are a concrete vertical",
+      "Intent: thread is already discussing AI receptionists",
+    ],
     variants: {
       shorter:
         "Salons are the clearest example: high-intent calls arrive while staff are with clients. AI is useful when it turns missed calls into booking texts.",
@@ -204,6 +214,11 @@ export const opportunities: OpportunityCard[] = [
       "Post angle: 'We found a boring AI agent use case that local businesses immediately understand: missed calls.' Walk through why a salon lead has high intent, why staff cannot answer, and why SMS follow-up beats a generic chatbot.",
     fit: 81,
     risk: 32,
+    reasoning: [
+      "Audience match: founders discussing practical agents",
+      "Angle: missed revenue is more concrete than automation",
+      "Format fit: original post, not a reply",
+    ],
     variants: {
       shorter:
         "Post angle: AI agents work best when they recover obvious missed revenue. Salons missing phone calls are a clean example.",
@@ -229,6 +244,11 @@ export const opportunities: OpportunityCard[] = [
       "A pattern that has worked for appointment businesses is to treat missed calls as a first-class booking event: trigger SMS, ask for service/date intent, then either create a booking request or hand off to staff.",
     fit: 76,
     risk: 16,
+    reasoning: [
+      "Technical match: booking workflow issue",
+      "Low promo risk: implementation pattern is useful on its own",
+      "Bridge: missed call event to SMS handoff",
+    ],
     variants: {
       shorter:
         "Treat the missed call as a booking event: trigger SMS, collect intent, then create a request or hand off to staff.",
@@ -254,6 +274,11 @@ export const opportunities: OpportunityCard[] = [
       "Positioning note: contrast generic answering with booking-aware missed-call recovery. The key line is 'not every missed call needs a receptionist; some need a booking flow.'",
     fit: 84,
     risk: 12,
+    reasoning: [
+      "Competitive signal: answering services lack booking context",
+      "Positioning gap: booking-aware missed-call recovery",
+      "Use case: informs copy and future posts",
+    ],
     variants: {
       shorter:
         "Positioning: generic answering services answer calls; Salon Agent recovers booking intent.",
@@ -264,6 +289,31 @@ export const opportunities: OpportunityCard[] = [
       direct:
         "Lead with: 'Answering services take messages. Salon Agent turns missed calls into booking conversations.'",
     },
+  },
+];
+
+export const searchStrategy = {
+  mode: "Pilot scan",
+  channels: ["Reddit", "X / web", "Hacker News", "GitHub issues", "Competitor web"],
+  queryClusters: ["missed calls", "AI receptionist", "salon booking", "local service follow-up"],
+  rules: ["Prefer threads asking for tools", "Skip consumer beauty threads", "Require helpful reply angle"],
+};
+
+export const skippedOpportunities = [
+  {
+    title: "Consumer thread about choosing a haircut",
+    source: "Reddit",
+    reason: "Wrong audience; no operator pain.",
+  },
+  {
+    title: "Generic AI agents are the future",
+    source: "X / web",
+    reason: "Too broad; reply would sound promotional.",
+  },
+  {
+    title: "Competitor support complaint",
+    source: "Web",
+    reason: "High conflict risk; better for intel than outreach.",
   },
 ];
 

@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "desktop:dev": "electron desktop/electron-bootstrap.cjs",
+    "debug:cdp": "node scripts/debug-cdp.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
@@ -28,8 +30,12 @@
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "@types/ws": "^8.18.1",
+    "electron": "^41.3.0",
     "eslint": "latest",
     "eslint-config-next": "latest",
-    "typescript": "latest"
+    "tsx": "^4.21.0",
+    "typescript": "latest",
+    "ws": "^8.20.0"
   }
 }

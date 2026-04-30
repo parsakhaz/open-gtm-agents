@@ -5,6 +5,7 @@ import { CheckCircle2, Copy, FileText, MessageSquare, ShieldAlert, Sparkles } fr
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { BrowserPostActions } from "@/components/browser/browser-post-actions";
 import { opportunities } from "@/lib/dry-run/demo-data";
 import type { OpportunityCard } from "@/lib/dry-run/types";
 import { cn } from "@/lib/utils";
@@ -203,6 +204,14 @@ function OpportunityDetail({
         <span className="mr-2 font-semibold">Suggested action:</span>
         <span className="text-muted-foreground">{opportunity.action}</span>
       </div>
+      <div className="mb-4 grid gap-2 md:grid-cols-3">
+        {opportunity.reasoning.map((reason) => (
+          <div key={reason} className="rounded-md border bg-card px-3 py-2 text-xs leading-5 text-muted-foreground">
+            <CheckCircle2 className="mr-1.5 inline h-3.5 w-3.5 text-primary-foreground" />
+            {reason}
+          </div>
+        ))}
+      </div>
       <div>
         <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
           <Sparkles className="h-4 w-4 text-primary-foreground" />
@@ -224,6 +233,13 @@ function OpportunityDetail({
           ))}
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <BrowserPostActions
+              url={opportunity.url}
+              comment={draft}
+              opportunityId={opportunity.id}
+            />
+          </div>
           <Button
             className="md:col-span-2"
             onClick={async () => {
