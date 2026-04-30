@@ -147,9 +147,11 @@ export default function Home() {
                       locked={gate !== "profile"}
                     />
                   </div>
-                  <div className="mt-4">
-                    <SchemaStreamPanel visibleIds={state.schemaIds} sections={liveSchemaSections} compact />
-                  </div>
+                  {state.schemaIds.length > 0 && (
+                    <div className="mt-4">
+                      <SchemaStreamPanel visibleIds={state.schemaIds} sections={liveSchemaSections} compact />
+                    </div>
+                  )}
                   {gate === "profile" && (
                     <motion.div
                       initial={{ opacity: 0, y: 8 }}
@@ -1077,9 +1079,11 @@ function ConnectingPanel({
           </div>
         </div>
 
-        <div className="mx-auto mt-6 max-w-7xl">
-          <SchemaStreamPanel visibleIds={visibleIds} sections={sections} compact />
-        </div>
+        {visibleIds.length > 0 && (
+          <div className="mx-auto mt-6 max-w-7xl">
+            <SchemaStreamPanel visibleIds={visibleIds} sections={sections} compact />
+          </div>
+        )}
       </motion.div>
     </div>
   );

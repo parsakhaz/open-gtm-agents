@@ -30,6 +30,14 @@ const initialState: VisibleState = {
   approvalState: "idle",
 };
 
+const liveWebsiteSections = [
+  "navigation",
+  "how-it-works",
+  "social-proof",
+  "stats",
+  "footer",
+];
+
 export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) {
   const [state, setState] = useState<VisibleState>(initialState);
   const [progress, setProgress] = useState(0);
@@ -127,6 +135,20 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
 
     async function applyEvent(event: ResearchRunEvent) {
       if (event.type === "status") {
+        if (event.stage === "Inferring GTM profile") {
+          setState((current) => ({
+            ...current,
+            phase: "onboarding",
+            onboardingStep: "analysis",
+            activeWebsiteSection: "navigation",
+            websiteScroll: 8,
+            activeStage: event.stage,
+            activeMessage: event.message,
+          }));
+          setProgress((current) => Math.max(current, 18));
+          return;
+        }
+
         if (event.stage === "Generating search angles") {
           setState((current) => ({
             ...current,
@@ -178,8 +200,8 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
           ...current,
           phase: "onboarding",
           onboardingStep: "analysis",
-          activeWebsiteSection: section.id,
-          websiteScroll: Math.min(72, Math.max(18, current.schemaIds.length * 14)),
+          activeWebsiteSection: liveWebsiteSectionFor(current.schemaIds.length),
+          websiteScroll: liveWebsiteScrollFor(current.schemaIds.length),
           schemaIds: current.schemaIds.includes(section.id)
             ? current.schemaIds
             : [...current.schemaIds, section.id],
@@ -301,4 +323,13 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function liveWebsiteSectionFor(index: number) {
+  return liveWebsiteSections[Math.min(index, liveWebsiteSections.length - 1)];
+}
+
+function liveWebsiteScrollFor(index: number) {
+  const scrollStops = [6, 22, 42, 62, 82];
+  return scrollStops[Math.min(index, scrollStops.length - 1)];
 }

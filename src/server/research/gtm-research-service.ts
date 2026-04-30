@@ -234,8 +234,13 @@ export class GTMResearchService {
       .map((search) => search.query)
       .join("\n");
     const externalQuery = excludedDomain
-      ? `${query}\nExclude results from ${excludedDomain}.`
-      : query;
+      ? `${query}
+Prioritize real posts and discussions from Reddit, Hacker News, X/Twitter, LinkedIn, GitHub discussions/issues, forums, Q&A sites, and review/community threads.
+Ignore vendor blogs, SEO articles, marketing pages, homepages, pricing pages, and product pages unless they are clearly competitor comparison evidence.
+Exclude results from ${excludedDomain}.`
+      : `${query}
+Prioritize real posts and discussions from Reddit, Hacker News, X/Twitter, LinkedIn, GitHub discussions/issues, forums, Q&A sites, and review/community threads.
+Ignore vendor blogs, SEO articles, marketing pages, homepages, pricing pages, and product pages unless they are clearly competitor comparison evidence.`;
     const searched = await searchWeb(externalQuery, liveSearchResultCount(), {
       fallback: "throw",
     });

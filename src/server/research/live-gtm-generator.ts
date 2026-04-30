@@ -152,7 +152,9 @@ export async function generateLiveGtmPlan(input: {
     systemPrompt: GTM_RESEARCH_ORCHESTRATOR_SYSTEM_PROMPT,
     userPrompt: `Build a GTM profile and broad external research missions for this website.
 
-Act like a senior GTM researcher. Each search query should be a concise external research mission, not a brittle exact keyword query. Give the web researcher room to explore buyer pain, competitors, alternatives, review pages, community discussions, and operational intent. Do not search the submitted website itself. Do not include the product brand name unless the mission is explicitly competitive/review research. Do not use site: queries for the submitted domain.
+Act like a senior GTM researcher. Each search query should be a concise external research mission, not a brittle exact keyword query. Give the web researcher room to explore buyer pain, competitors, alternatives, community discussions, and operational intent.
+
+Prioritize real people and comment opportunities from Reddit, Hacker News, X/Twitter, LinkedIn, GitHub discussions/issues, forums, Q&A sites, and review/community threads. Avoid vendor blogs, marketing pages, homepages, pricing pages, SEO articles, and product pages unless the mission is explicitly competitive comparison. Do not search the submitted website itself. Do not include the product brand name unless the mission is explicitly competitive/review research. Do not use site: queries for the submitted domain.
 
 Website URL: ${input.websiteUrl}
 

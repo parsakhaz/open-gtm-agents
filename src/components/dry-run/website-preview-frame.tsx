@@ -121,7 +121,7 @@ export function WebsitePreviewFrame({
             return (
               <motion.div
                 key={section.id}
-                animate={{ opacity: index <= activeIndex + 1 ? 1 : 0.5 }}
+                animate={{ opacity: 1 }}
                 className="grid min-h-[88px] grid-cols-[40px_minmax(0,1fr)] gap-4"
               >
                 <div className="flex h-full flex-col items-center">

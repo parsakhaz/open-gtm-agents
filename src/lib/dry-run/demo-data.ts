@@ -143,20 +143,20 @@ export const opportunities: OpportunityCard[] = [
   {
     id: "x-ai-receptionist",
     type: "comment",
-    source: "x",
-    title: "AI receptionists are underrated for local businesses",
-    location: "X search",
-    url: "https://x.com/example/status/1",
+    source: "reddit",
+    title: "AI agents in traditional businesses",
+    location: "r/AI_Agents",
+    url: "https://www.reddit.com/r/AI_Agents/comments/1sk3lql/i_integrated_ai_agents_into_five_traditional/",
     sourceContent: {
-      author: "@localops",
-      body: "AI receptionists are underrated for local businesses. The biggest unlock is not replacing staff, it is making sure high-intent calls do not disappear when nobody can pick up.",
-      context: "Thread discussing AI receptionists for local services",
+      author: "r/AI_Agents",
+      body: "I integrated AI agents into five traditional businesses. The interesting part is where the agent handles a narrow operational workflow instead of trying to replace a whole job.",
+      context: "Thread discussing practical AI agents in traditional businesses",
     },
     rationale:
-      "The thread is already discussing local service AI receptionists, and salons are a concrete vertical example with obvious urgency.",
-    action: "Add a specific salon use case and avoid sounding like a launch announcement.",
+      "The thread is already about practical AI agents in traditional businesses, so a salon missed-call workflow is a concrete, relevant example.",
+    action: "Add a specific salon use case, disclose the build context, and avoid a hard sell.",
     draft:
-      "Salons are a great example because the person answering the phone is often also with a client. The best AI receptionist use case is not replacing the front desk; it is catching the high-intent missed call and turning it into a booking text.",
+      "This matches what we are seeing with salons. The useful agent is not a vague 'AI receptionist'; it is a narrow workflow for missed calls: notice nobody picked up, text the caller immediately, collect service/date intent, and hand the booking back to staff. It works because the lead is already high-intent and the owner can feel the missed revenue right away.",
     fit: 87,
     risk: 24,
     reasoning: [
@@ -166,13 +166,13 @@ export const opportunities: OpportunityCard[] = [
     ],
     variants: {
       shorter:
-        "Salons are the clearest example: high-intent calls arrive while staff are with clients. AI is useful when it turns missed calls into booking texts.",
+        "Salons are a good example: the agent just catches missed calls, texts back immediately, collects booking intent, and hands it to staff.",
       softer:
-        "I think salons are an interesting vertical here. The value is less 'replace the front desk' and more 'catch the missed call before the lead goes elsewhere.'",
+        "I think salons are a strong fit for this pattern. It is less about replacing the front desk and more about catching the missed call before the client books elsewhere.",
       technical:
-        "The useful workflow is vertical-specific: missed-call trigger, SMS intent capture, service selection, and booking handoff.",
+        "The useful workflow is event-driven: missed_call -> SMS reply -> intent capture -> booking handoff. Narrow, but valuable.",
       direct:
-        "We are building this for salons specifically. The wedge is missed-call recovery, not a generic AI receptionist.",
+        "We are building this for salons. The wedge is missed-call recovery, not a generic AI receptionist.",
     },
   },
   {
