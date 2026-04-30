@@ -27,7 +27,7 @@ export function ActivityTimeline({
       <p className="mb-4 text-sm leading-6 text-muted-foreground">{activeMessage}</p>
       <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-muted-foreground">
         <Search className="h-3.5 w-3.5" />
-        Keywords crawled
+        Search queries crawled
       </div>
       <div className="space-y-3">
         <AnimatePresence initial={false}>
@@ -44,11 +44,11 @@ export function ActivityTimeline({
                 </div>
                 <Badge variant="secondary">{sourceLabel(group.source)}</Badge>
               </div>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="space-y-1.5">
                 {group.keywords.map((keyword) => (
                   <span
                     key={keyword}
-                    className="rounded-full border bg-muted/40 px-2 py-1 text-[11px] font-medium text-muted-foreground"
+                    className="block rounded-md border bg-muted/30 px-2.5 py-1.5 text-[11px] font-medium leading-4 text-muted-foreground"
                   >
                     {keyword}
                   </span>
@@ -77,10 +77,33 @@ function groupedSearches(searches: Array<{ source: SourceId; query: string }>) {
 }
 
 function splitKeywords(query: string) {
-  const stopWords = new Set(["ai", "and", "or", "the", "for"]);
-  return query
-    .split(/\s+/)
-    .map((word) => word.trim().toLowerCase())
-    .filter((word) => word.length > 2 && !stopWords.has(word))
-    .slice(0, 5);
+  const additions: Record<string, string[]> = {
+    "salon missed calls receptionist alternative": [
+      'site:reddit.com/r/salonowners "missed calls" "salon"',
+      '"salon receptionist alternative" booking calls',
+      '"how do you handle calls" salon client',
+    ],
+    "AI receptionist local business salon": [
+      '"AI receptionist" "local business" salon',
+      '"missed calls" "AI receptionist" small business',
+      '"front desk automation" salon booking',
+    ],
+    "AI agents local businesses missed revenue": [
+      '"AI agents" "local businesses" missed revenue',
+      '"missed revenue" "phone calls" business',
+      '"boring AI agent" practical use case',
+    ],
+    "booking SMS missed call issue": [
+      'repo:booking "missed call" "SMS fallback"',
+      '"appointment booking" "missed call" issue',
+      '"Twilio" "booking" "missed call"',
+    ],
+    "salon answering service booking follow up": [
+      '"salon answering service" booking follow up',
+      '"after hours" "salon booking" phone',
+      '"missed call" "book appointment" salon',
+    ],
+  };
+
+  return additions[query] ?? [query];
 }

@@ -187,51 +187,45 @@ function OpportunityDetail({
       animate={{ opacity: 1, height: "auto" }}
       className="border-t bg-background/70 p-4"
     >
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Badge variant="outline" className="gap-1">
-          <SourceIcon source={opportunity.source} className="h-3 w-3" />
-          {sourceLabel(opportunity.source)}
-        </Badge>
-        <TypeBadge type={opportunity.type} />
-        {approvalState === "reviewing" && <Badge variant="outline">User reviewing</Badge>}
-        {approvalState === "rewriting" && <Badge variant="warning">Making it natural</Badge>}
-        {approvalState === "copied" && <Badge variant="success">Copied</Badge>}
-      </div>
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_330px]">
-        <div className="rounded-md border bg-card p-3">
-          <div className="mb-2 text-xs font-semibold text-muted-foreground">Suggested action</div>
-          <p className="text-sm leading-6">{opportunity.action}</p>
+      {(approvalState === "rewriting" || approvalState === "copied") && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          {approvalState === "rewriting" && <Badge variant="warning">Making it natural</Badge>}
+          {approvalState === "copied" && <Badge variant="success">Copied</Badge>}
         </div>
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-            <Sparkles className="h-4 w-4 text-primary-foreground" />
-            Draft
-          </div>
-          <motion.div
-            key={`${opportunity.id}-${variant}`}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-md border bg-card p-3 text-sm leading-6 text-muted-foreground"
-          >
-            {draft}
-          </motion.div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {(["shorter", "softer", "technical", "direct"] as const).map((item) => (
-              <Button key={item} variant="outline" size="sm" onClick={() => setVariant(item)}>
-                {item}
-              </Button>
-            ))}
-          </div>
-          <div className="mt-3 flex gap-2">
-            <Button className="flex-1">
-              <Copy className="h-4 w-4" />
-              {approvalState === "copied" ? "Copied" : "Copy"}
+      )}
+      <div className="mb-4 rounded-md border bg-card px-3 py-2 text-sm leading-6">
+        <span className="mr-2 font-semibold">Suggested action:</span>
+        <span className="text-muted-foreground">{opportunity.action}</span>
+      </div>
+      <div>
+        <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+          <Sparkles className="h-4 w-4 text-primary-foreground" />
+          Draft
+        </div>
+        <motion.div
+          key={`${opportunity.id}-${variant}`}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-md border bg-card p-3 text-sm leading-6 text-muted-foreground"
+        >
+          {draft}
+        </motion.div>
+        <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+          {(["shorter", "softer", "technical", "direct"] as const).map((item) => (
+            <Button key={item} variant="outline" size="sm" onClick={() => setVariant(item)}>
+              {item}
             </Button>
-            <Button variant="outline" className="flex-1">
-              <ArrowUpRight className="h-4 w-4" />
-              Open
-            </Button>
-          </div>
+          ))}
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          <Button>
+            <Copy className="h-4 w-4" />
+            {approvalState === "copied" ? "Copied" : "Copy"}
+          </Button>
+          <Button variant="outline">
+            <ArrowUpRight className="h-4 w-4" />
+            Open
+          </Button>
         </div>
       </div>
     </motion.div>
