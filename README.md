@@ -186,7 +186,7 @@ Current stack direction:
 - Exa for landing page ingestion, web search, and source content
 - Supabase for Postgres, auth, run state, and later vector search
 - Resend for email notifications
-- Internal web researcher service for broad web and social research
+- Internal web researcher service for broad web and social research, implemented and smoke-tested
 - GitHub APIs for issue and repository search
 - Hacker News public APIs for Hacker News search
 - Apify or RapidAPI only if needed as a fallback for source access
@@ -211,6 +211,7 @@ It includes:
 - Streamed comment opportunities, original post ideas, and competitive insights
 - Focused review deck with rewrite/copy/open actions
 - Seeded and OpenAI-backed research API route
+- OpenAI-backed web researcher verified with a cited web research smoke test at [docs/research/2026-04-30-web-nextjs-turbopack.md](docs/research/2026-04-30-web-nextjs-turbopack.md)
 - Supabase client helpers
 - Supabase schema applied to the linked remote project
 - Vercel production deployment with OpenAI and Supabase environment variables
@@ -220,6 +221,7 @@ Verified with:
 - `npm run lint`
 - `npm run build`
 - `npm run test:web-researcher`
+- Manual web research call using official Next.js sources
 
 ## Local Development
 

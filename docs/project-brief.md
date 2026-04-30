@@ -134,7 +134,7 @@ Default behavior:
 - Recommend skipping low-fit opportunities
 - Learn from user edits and rejections
 
-For the first version, the product should help users manually comment or post. Official posting APIs for X, Reddit, and similar platforms are not required for the hackathon version. Source access should start with the internal OpenAI-backed researcher plus Exa, then expand through Hacker News APIs, GitHub APIs, Apify, RapidAPI, or similar providers where useful.
+For the first version, the product should help users manually comment or post. Official posting APIs for X, Reddit, and similar platforms are not required for the hackathon version. Source access starts with the internal OpenAI-backed researcher plus Exa, then expands through Hacker News APIs, GitHub APIs, Apify, RapidAPI, or similar providers where useful. The base OpenAI-backed web research path is implemented and smoke-tested with a cited research artifact.
 
 ## Competitive Intelligence
 

@@ -36,7 +36,9 @@ EXA_API_KEY
 
 The research route intentionally falls back to seeded demo output when provider
 keys are missing. OpenAI and Supabase runtime variables are configured in Vercel
-for production and development.
+for production and development. The OpenAI-backed web researcher path has been
+smoke-tested successfully with a cited web research artifact at
+[`docs/research/2026-04-30-web-nextjs-turbopack.md`](research/2026-04-30-web-nextjs-turbopack.md).
 
 ## Supabase
 

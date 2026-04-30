@@ -14,7 +14,7 @@
 - The hackathon version is single-user.
 - Supabase is acceptable for database and auth.
 - GitHub issues can use the free GitHub API.
-- Reddit, X, and broad web/social research should go through the internal OpenAI-backed researcher first, with source adapters added as needed.
+- Reddit, X, and broad web/social research should go through the internal OpenAI-backed researcher first, with source adapters added as needed. The base web researcher path is implemented and smoke-tested.
 - Apify and RapidAPI are fallback options, not the primary plan.
 - The researcher service should keep a flexible internal schema while returning normalized findings, sources, and streamed events to the product.
 - Scoring and dedupe can be designed by the implementation team.
@@ -28,9 +28,10 @@
 
 ## Research Agent Integration
 
-- How should the internal researcher split responsibilities between OpenAI structured synthesis and source-specific adapters?
+- Done: the base OpenAI-backed web researcher path can perform cited web research and save a research artifact. See [research/2026-04-30-web-nextjs-turbopack.md](research/2026-04-30-web-nextjs-turbopack.md).
+- Remaining: how should the internal researcher split responsibilities between OpenAI structured synthesis and source-specific adapters?
 - Which source adapters should ship first after Exa: Hacker News, GitHub, Reddit, or X?
-- What minimum source coverage is enough before we mark live research as production-ready?
+- What minimum source coverage beyond the smoke-tested base web path is enough before we mark live research as production-ready?
 - What tool-call interface should it use to write directly into Supabase?
 
 ## Ranking

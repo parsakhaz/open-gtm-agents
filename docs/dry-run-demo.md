@@ -4,7 +4,7 @@
 
 The dry run should make Open GTM Agents feel real before every external integration is wired.
 
-The goal is to build the full user-facing experience first: polished UI, streamed agent progress, realistic data, opportunity cards, and approval flows. The backend can later replace seeded/demo data with real Exa, web researcher, Supabase, and Resend calls without changing the core product experience.
+The goal is to build the full user-facing experience first: polished UI, streamed agent progress, realistic data, opportunity cards, and approval flows. The backend can replace seeded/demo data with real Exa, the now smoke-tested web researcher, Supabase, and Resend calls without changing the core product experience.
 
 See [dry-run-implementation-plan.md](dry-run-implementation-plan.md) for the concrete frontend build plan.
 
@@ -334,6 +334,7 @@ Current state:
 - The selected opportunity has a focused review panel with rationale, fit/risk, suggested action, draft, rewrite variants, copy, and open actions.
 - Simple Icons are used for source logos, lucide icons are used for interface actions, and Framer Motion drives staged transitions.
 - A seeded `/api/research/run` endpoint exists for NDJSON-style research events.
+- The OpenAI-backed web researcher path has been smoke-tested with a cited research artifact at [research/2026-04-30-web-nextjs-turbopack.md](research/2026-04-30-web-nextjs-turbopack.md).
 - A Supabase schema exists for product profiles, runs, events, source results, opportunities, drafts, and feedback.
 
 Verification completed:
