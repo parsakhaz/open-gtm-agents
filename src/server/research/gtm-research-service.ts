@@ -25,7 +25,7 @@ export class GTMResearchService {
   constructor(private webResearcher = new WebResearcherService()) {}
 
   async run(input: ResearchRunRequest, emit: EmitResearchEvent) {
-    const model = process.env.OPENROUTER_MODEL;
+    const model = process.env.OPENAI_MODEL;
     const run = researchStore.createRun({
       websiteUrl: input.websiteUrl,
       objective: input.objective,

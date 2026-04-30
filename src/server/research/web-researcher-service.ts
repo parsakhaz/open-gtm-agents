@@ -18,12 +18,35 @@ type WebResearcherInput = {
   mode: ResearchMode;
 };
 
-type OpenRouterResponse = {
-  choices?: Array<{
-    message?: {
-      content?: string;
-    };
+type OpenAIResponsesResponse = {
+  output_text?: string;
+  output?: Array<{
+    content?: Array<{
+      type?: string;
+      text?: string;
+    }>;
   }>;
+};
+
+const researchReportJsonSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    content: {
+      type: "string",
+      description: "Verified research findings with unverified details marked inline.",
+    },
+    sources: {
+      type: "array",
+      items: { type: "string" },
+      description: "Source URLs used for the report.",
+    },
+    limitations: {
+      type: "string",
+      description: "What could not be verified or accessed.",
+    },
+  },
+  required: ["content", "sources", "limitations"],
 };
 
 export class WebResearcherService {
@@ -38,7 +61,7 @@ export class WebResearcherService {
 
     if (
       input.mode === "demo" ||
-      !process.env.OPENROUTER_API_KEY ||
+      !process.env.OPENAI_API_KEY ||
       sources.length === 0
     ) {
       return {
@@ -47,7 +70,7 @@ export class WebResearcherService {
       };
     }
 
-    const model = process.env.OPENROUTER_MODEL || "google/gemini-flash-1.5";
+    const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
     const report = await this.generateReport(input, sources, model);
 
     return {
@@ -63,15 +86,18 @@ export class WebResearcherService {
     sources: SourceReference[],
     model: string,
   ): Promise<VerifiedResearchReport | null> {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model,
-        messages: [
+        reasoning: {
+          effort: "low",
+        },
+        input: [
           {
             role: "system",
             content: VERIFIED_WEB_RESEARCH_SYSTEM_PROMPT,
@@ -81,7 +107,15 @@ export class WebResearcherService {
             content: buildUserPrompt(input, sources),
           },
         ],
-        response_format: { type: "json_object" },
+        text: {
+          verbosity: "low",
+          format: {
+            type: "json_schema",
+            name: "verified_research_report",
+            strict: true,
+            schema: researchReportJsonSchema,
+          },
+        },
       }),
     });
 
@@ -89,8 +123,8 @@ export class WebResearcherService {
       return null;
     }
 
-    const data = (await response.json()) as OpenRouterResponse;
-    const content = data.choices?.[0]?.message?.content;
+    const data = (await response.json()) as OpenAIResponsesResponse;
+    const content = extractResponseText(data);
     if (!content) return null;
 
     try {
@@ -124,6 +158,22 @@ export class WebResearcherService {
       return null;
     }
   }
+}
+
+function extractResponseText(response: OpenAIResponsesResponse) {
+  if (response.output_text) {
+    return response.output_text;
+  }
+
+  for (const item of response.output ?? []) {
+    for (const content of item.content ?? []) {
+      if (content.type === "output_text" && content.text) {
+        return content.text;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 function buildUserPrompt(input: WebResearcherInput, sources: SourceReference[]) {

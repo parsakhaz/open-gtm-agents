@@ -22,7 +22,7 @@ The current stack direction is:
 - Vercel Pro for hosting, serverless functions, cron, and deployment
 - Next.js for the web application
 - Vercel AI SDK for model calls, structured outputs, tool use, and streaming
-- OpenRouter as the model provider
+- OpenAI as the model provider
 - Exa for website ingestion, web search, and source retrieval
 - Supabase for Postgres, auth, run state, and later pgvector
 - Resend for email notifications
@@ -191,7 +191,7 @@ Suggested services:
 - `NotificationService`
 - `DryRunService`
 
-The existing web researcher agent should be ported behind a stable interface. It can have a dynamic internal schema, but the product should receive normalized findings, sources, and streamed events.
+The internal web researcher should sit behind a stable interface. It can have a dynamic internal schema, but the product should receive normalized findings, sources, and streamed events.
 
 ```ts
 type ResearchRequest = {

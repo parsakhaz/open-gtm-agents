@@ -182,11 +182,11 @@ Current stack direction:
 - Vercel Pro for hosting, functions, cron, and deployment
 - Next.js for the web app
 - Vercel AI SDK for model calls, structured outputs, and streaming
-- OpenRouter as the model provider
+- OpenAI as the model provider
 - Exa for landing page ingestion, web search, and source content
 - Supabase for Postgres, auth, run state, and later vector search
 - Resend for email notifications
-- xAI or the provided web researcher agent for broad web and social research
+- Internal web researcher service for broad web and social research
 - GitHub APIs for issue and repository search
 - Hacker News public APIs for Hacker News search
 - Apify or RapidAPI only if needed as a fallback for source access
