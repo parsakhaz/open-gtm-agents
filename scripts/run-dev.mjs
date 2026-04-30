@@ -1,28 +1,44 @@
 #!/usr/bin/env node
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import net from "node:net";
 import process from "node:process";
 
 const root = process.cwd();
 const args = parseArgs(process.argv.slice(2));
 const host = args.host ?? "127.0.0.1";
-const port = args.port ?? "3000";
-const relayPort = args.relayPort ?? process.env.BROWSER_RELAY_PORT ?? "4123";
 const shouldStartDesktop = args.desktop !== "false";
 
 await ensureEnv(args);
+loadEnvFiles();
+if (args.killExisting !== "false") {
+  killExistingNextDev();
+}
+
+const port = await resolvePort(args.port ?? process.env.PORT ?? "3000", host, "web");
+const relayPort = await resolvePort(
+  args.relayPort ?? process.env.BROWSER_RELAY_PORT ?? "4123",
+  "127.0.0.1",
+  "browser relay",
+);
+const relayUrl = process.env.BROWSER_RELAY_URL ?? `http://127.0.0.1:${relayPort}`;
 
 const children = [];
 
-start("web", process.execPath, [
-  localBin("next", "dist/bin/next"),
-  "dev",
-  "--hostname",
-  host,
-  "--port",
-  port,
-]);
+start(
+  "web",
+  process.execPath,
+  [
+    localBin("next", "dist/bin/next"),
+    "dev",
+    "--hostname",
+    host,
+    "--port",
+    port,
+  ],
+  { BROWSER_RELAY_URL: relayUrl },
+);
 
 if (shouldStartDesktop) {
   start(
@@ -35,7 +51,7 @@ if (shouldStartDesktop) {
 
 console.log("");
 console.log(`Open GTM Agents: http://${host}:${port}`);
-console.log(`Browser relay:   http://127.0.0.1:${relayPort}`);
+console.log(`Browser relay:   ${relayUrl}`);
 console.log(`Env source:       ${existsSync(path.join(root, ".env.local")) ? ".env.local" : "process env"}`);
 console.log(`Browser model:    ${process.env.OPENAI_MODEL || "gpt-5.4-mini"} (reasoning high)`);
 console.log(`Orchestrator:     ${process.env.OPENAI_HIGH_QUALITY_MODEL || "gpt-5.5"}`);
@@ -122,6 +138,40 @@ async function ensureEnv(options) {
   ]);
 }
 
+function loadEnvFiles() {
+  const loaded = [];
+  for (const file of [".env", ".env.local"]) {
+    const fullPath = path.join(root, file);
+    if (!existsSync(fullPath)) continue;
+    loadEnvFile(fullPath);
+    loaded.push(file);
+  }
+
+  if (loaded.length > 0) {
+    console.log(`[env] loaded ${loaded.join(", ")}`);
+  }
+}
+
+function loadEnvFile(filePath) {
+  const text = readFileSync(filePath, "utf8");
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#") || !line.includes("=")) continue;
+    const index = line.indexOf("=");
+    const key = line.slice(0, index).trim();
+    let value = line.slice(index + 1).trim();
+
+    if (
+      (value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    process.env[key] = value;
+  }
+}
+
 function runOptional(label, commandArgs) {
   return new Promise((resolve) => {
     const command = process.platform === "win32" ? "npx.cmd" : "npx";
@@ -143,8 +193,95 @@ function runOptional(label, commandArgs) {
   });
 }
 
+function killExistingNextDev() {
+  if (process.platform === "win32") {
+    const psScript = `
+$root = ${JSON.stringify(root)}
+$currentPid = $PID
+Get-CimInstance Win32_Process |
+  Where-Object {
+    $_.ProcessId -ne $currentPid -and
+    $_.CommandLine -and
+    $_.CommandLine.Contains($root) -and
+    (
+      $_.CommandLine.Contains('node_modules\\next\\dist\\bin\\next') -or
+      $_.CommandLine.Contains('node_modules\\next\\dist\\server\\lib\\start-server') -or
+      $_.CommandLine.Contains('.next\\dev\\build')
+    )
+  } |
+  ForEach-Object {
+    Write-Output "[dev] stopping existing Next dev PID $($_.ProcessId)"
+    Stop-Process -Id $_.ProcessId -Force
+  }
+`;
+    const result = spawnSync(
+      "powershell.exe",
+      ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", psScript],
+      { cwd: root, encoding: "utf8" },
+    );
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    return;
+  }
+
+  const result = spawnSync("ps", ["-eo", "pid=,args="], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  if (result.error || !result.stdout) return;
+
+  for (const line of result.stdout.split(/\r?\n/)) {
+    if (
+      !line.includes(root) ||
+      !/node_modules\/next\/dist\/bin\/next|node_modules\/next\/dist\/server\/lib\/start-server|\.next\/dev\/build/.test(line)
+    ) {
+      continue;
+    }
+
+    const match = line.trim().match(/^(\d+)/);
+    const pid = match ? Number(match[1]) : 0;
+    if (!pid || pid === process.pid) continue;
+
+    try {
+      process.kill(pid, "SIGTERM");
+      console.log(`[dev] stopping existing Next dev PID ${pid}`);
+    } catch {
+      // Ignore stale process table entries.
+    }
+  }
+}
+
 function localBin(packageName, relativeBin) {
   return path.join(root, "node_modules", packageName, relativeBin);
+}
+
+async function resolvePort(preferredPort, bindHost, label) {
+  const startPort = Number(preferredPort);
+  if (!Number.isInteger(startPort) || startPort <= 0) {
+    throw new Error(`${label} port must be a positive integer.`);
+  }
+
+  for (let candidate = startPort; candidate < startPort + 20; candidate += 1) {
+    if (await isPortAvailable(candidate, bindHost)) {
+      if (candidate !== startPort) {
+        console.log(`[dev] ${label} port ${startPort} is busy; using ${candidate}.`);
+      }
+      return String(candidate);
+    }
+  }
+
+  throw new Error(`No available ${label} port found from ${startPort} to ${startPort + 19}.`);
+}
+
+function isPortAvailable(port, bindHost) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once("error", () => resolve(false));
+    server.once("listening", () => {
+      server.close(() => resolve(true));
+    });
+    server.listen(port, bindHost);
+  });
 }
 
 function parseArgs(values) {

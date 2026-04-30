@@ -31,7 +31,7 @@ export function buildPostCommentMission(input: PostCommentRequest): BrowserMissi
       "ambiguity",
       "destructive_confirmation",
     ],
-    maxTurns: 20,
+    maxTurns: 35,
   };
 }
 

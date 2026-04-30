@@ -40,7 +40,7 @@ type OpenAIResponsesResponse = {
   output?: ResponseOutputItem[];
 };
 
-const DEFAULT_MAX_TURNS = 20;
+const DEFAULT_MAX_TURNS = 35;
 const SAME_ERROR_LIMIT = 3;
 const NO_PROGRESS_LIMIT = 6;
 
@@ -414,7 +414,11 @@ export class BrowserAgentService {
       }
 
       const detail = await response.text();
-      if ((response.status === 429 || response.status >= 500) && attempt < 2) {
+      if (
+        (response.status === 429 || response.status >= 500) &&
+        attempt < 2 &&
+        !isHardRateLimit(detail)
+      ) {
         const retryDelayMs = getRetryDelayMs(response, detail, attempt);
         debugLog("browser-agent", "OpenAI response retry", {
           model,
@@ -460,12 +464,23 @@ function getRetryDelayMs(response: Response, detail: string, attempt: number) {
     return Math.min(retryAfter * 1000, 30_000);
   }
 
-  const bodyDelay = detail.match(/try again in\s+([\d.]+)s/i);
-  if (bodyDelay?.[1]) {
-    return Math.min(Number(bodyDelay[1]) * 1000, 30_000);
+  const bodySecondsDelay = detail.match(/try again in\s+([\d.]+)s/i);
+  if (bodySecondsDelay?.[1]) {
+    return Math.min(Number(bodySecondsDelay[1]) * 1000, 30_000);
+  }
+
+  const bodyMinuteDelay = detail.match(/try again in\s+(?:(\d+)m)?\s*(?:(\d+)s)?/i);
+  if (bodyMinuteDelay?.[1] || bodyMinuteDelay?.[2]) {
+    const minutes = Number(bodyMinuteDelay[1] ?? 0);
+    const seconds = Number(bodyMinuteDelay[2] ?? 0);
+    return Math.min((minutes * 60 + seconds) * 1000, 30_000);
   }
 
   return 2_500 * (attempt + 1);
+}
+
+function isHardRateLimit(detail: string) {
+  return /requests per day|rpd|billing/i.test(detail);
 }
 
 function parseCallArguments(value: string | undefined): Record<string, unknown> {

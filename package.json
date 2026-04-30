@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:local": "node scripts/run-dev.mjs",
+    "browser:mission": "tsx scripts/run-browser-mission.ts",
     "desktop:dev": "electron desktop/electron-bootstrap.cjs",
     "debug:cdp": "node scripts/debug-cdp.mjs",
     "build": "next build",
