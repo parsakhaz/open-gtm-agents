@@ -1,3 +1,4 @@
+import { debugLog, durationMs, previewForLog } from "@/lib/debug-log";
 import type {
   ResearchMode,
   SourceReference,
@@ -7,6 +8,7 @@ import {
   RESEARCH_PROMPT_VERSION,
   VERIFIED_WEB_RESEARCH_SYSTEM_PROMPT,
 } from "./prompts";
+import { withProviderRetry } from "./provider-retry";
 import { getSeededResearchReport } from "./seeded-research";
 import { fetchUrlContent, searchWeb } from "./web-search";
 
@@ -54,16 +56,37 @@ export class WebResearcherService {
     report: VerifiedResearchReport;
     sources: SourceReference[];
   }> {
-    const searched = await searchWeb(input.topic);
-    const fetched = await fetchUrlContent(searched.slice(0, 5).map((r) => r.url));
+    const startedAt = Date.now();
+    const live = input.mode === "live";
+    debugLog("web-researcher", "research start", {
+      mode: input.mode,
+      topic: input.topic,
+      requiredDetailCount: input.requiredDetails?.length ?? 0,
+    });
+
+    const searched = await searchWeb(input.topic, 8, {
+      fallback: live ? "throw" : "seeded",
+    });
+    const fetched = await fetchUrlContent(
+      searched.slice(0, 5).map((result) => result.url),
+      { fallback: live ? "throw" : "seeded" },
+    );
     const sources = mergeSources(searched, fetched);
     const searchedQueries = [input.topic];
 
-    if (
-      input.mode === "demo" ||
-      !process.env.OPENAI_API_KEY ||
-      sources.length === 0
-    ) {
+    if (input.mode === "demo" || !process.env.OPENAI_API_KEY || sources.length === 0) {
+      if (live && !process.env.OPENAI_API_KEY) {
+        throw new Error("OPENAI_API_KEY is required for live research synthesis.");
+      }
+      if (live && sources.length === 0) {
+        throw new Error("Live web research found no sources to synthesize.");
+      }
+
+      debugLog("web-researcher", "using seeded report fallback", {
+        mode: input.mode,
+        sourceCount: sources.length,
+        hasOpenAIKey: Boolean(process.env.OPENAI_API_KEY),
+      }, "warn");
       return {
         report: getSeededResearchReport(searchedQueries),
         sources,
@@ -73,10 +96,15 @@ export class WebResearcherService {
     const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
     const report = await this.generateReport(input, sources, model);
 
+    debugLog("web-researcher", "research done", {
+      mode: input.mode,
+      sourceCount: sources.length,
+      reportSourceCount: report.sources.length,
+      durationMs: durationMs(startedAt),
+    });
+
     return {
-      report:
-        report ??
-        getSeededResearchReport(searchedQueries),
+      report,
       sources,
     };
   }
@@ -85,79 +113,101 @@ export class WebResearcherService {
     input: WebResearcherInput,
     sources: SourceReference[],
     model: string,
-  ): Promise<VerifiedResearchReport | null> {
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        reasoning: {
-          effort: "low",
-        },
-        input: [
-          {
-            role: "system",
-            content: VERIFIED_WEB_RESEARCH_SYSTEM_PROMPT,
-          },
-          {
-            role: "user",
-            content: buildUserPrompt(input, sources),
-          },
-        ],
-        text: {
-          verbosity: "low",
-          format: {
-            type: "json_schema",
-            name: "verified_research_report",
-            strict: true,
-            schema: researchReportJsonSchema,
-          },
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = (await response.json()) as OpenAIResponsesResponse;
-    const content = extractResponseText(data);
-    if (!content) return null;
-
-    try {
-      const parsed = JSON.parse(content) as {
-        content?: unknown;
-        sources?: unknown;
-        limitations?: unknown;
-      };
-
-      if (
-        typeof parsed.content !== "string" ||
-        !Array.isArray(parsed.sources) ||
-        !parsed.sources.every((source) => typeof source === "string")
-      ) {
-        return null;
-      }
-
-      return {
-        content: parsed.content,
-        sources: parsed.sources,
-        limitations:
-          typeof parsed.limitations === "string" ? parsed.limitations : undefined,
-        metadata: {
-          mode: input.mode,
-          promptVersion: RESEARCH_PROMPT_VERSION,
+  ): Promise<VerifiedResearchReport> {
+    return withProviderRetry(
+      { provider: "OpenAI", operation: "verified research report" },
+      async () => {
+        debugLog("web-researcher", "OpenAI report request", {
           model,
-          searchedQueries: [input.topic],
-        },
-      };
-    } catch {
-      return null;
-    }
+          sourceCount: sources.length,
+          reasoningEffort: researchReasoningEffort(),
+        });
+        const response = await fetch("https://api.openai.com/v1/responses", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model,
+            reasoning: {
+              effort: researchReasoningEffort(),
+            },
+            input: [
+              {
+                role: "system",
+                content: VERIFIED_WEB_RESEARCH_SYSTEM_PROMPT,
+              },
+              {
+                role: "user",
+                content: buildUserPrompt(input, sources),
+              },
+            ],
+            text: {
+              verbosity: "low",
+              format: {
+                type: "json_schema",
+                name: "verified_research_report",
+                strict: true,
+                schema: researchReportJsonSchema,
+              },
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          const body = await response.text();
+          throw new Error(`OpenAI report failed: ${response.status} ${body.slice(0, 500)}`);
+        }
+
+        const data = (await response.json()) as OpenAIResponsesResponse;
+        const content = extractResponseText(data);
+        if (!content) {
+          throw new Error("OpenAI report returned no output text.");
+        }
+
+        try {
+          const parsed = JSON.parse(content) as {
+            content?: unknown;
+            sources?: unknown;
+            limitations?: unknown;
+          };
+
+          if (
+            typeof parsed.content !== "string" ||
+            !Array.isArray(parsed.sources) ||
+            !parsed.sources.every((source) => typeof source === "string")
+          ) {
+            throw new Error("OpenAI report returned an invalid JSON shape.");
+          }
+
+          return {
+            content: parsed.content,
+            sources: parsed.sources,
+            limitations:
+              typeof parsed.limitations === "string" ? parsed.limitations : undefined,
+            metadata: {
+              mode: input.mode,
+              promptVersion: RESEARCH_PROMPT_VERSION,
+              model,
+              searchedQueries: [input.topic],
+            },
+          };
+        } catch (error) {
+          debugLog("web-researcher", "OpenAI report parse failed", {
+            error: previewForLog(error instanceof Error ? error.message : error, 300),
+            output: previewForLog(content, 500),
+          }, "warn");
+          throw error;
+        }
+      },
+    );
   }
+}
+
+function researchReasoningEffort() {
+  const effort = process.env.OPENAI_RESEARCH_REASONING_EFFORT || "low";
+  return ["minimal", "low", "medium", "high"].includes(effort) ? effort : "low";
 }
 
 function extractResponseText(response: OpenAIResponsesResponse) {

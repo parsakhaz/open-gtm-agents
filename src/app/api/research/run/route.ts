@@ -34,22 +34,36 @@ export async function POST(request: Request) {
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      let closed = false;
+      const markClosed = () => {
+        closed = true;
+      };
+      request.signal.addEventListener("abort", markClosed, { once: true });
+
       const emit = (event: ResearchRunEvent) => {
+        if (closed || request.signal.aborted) return;
         controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       };
 
       try {
         await gtmResearchService.run(input, emit);
       } catch (error) {
-        emit({
+        if (!closed && !request.signal.aborted) emit({
           type: "error",
           message:
             error instanceof Error ? error.message : "Research run failed.",
           createdAt: new Date().toISOString(),
         });
       } finally {
-        controller.close();
+        request.signal.removeEventListener("abort", markClosed);
+        if (!closed) {
+          closed = true;
+          controller.close();
+        }
       }
+    },
+    cancel() {
+      // The running provider work is allowed to finish; emit becomes a no-op.
     },
   });
 

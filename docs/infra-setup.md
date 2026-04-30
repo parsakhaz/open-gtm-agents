@@ -34,13 +34,28 @@ Optional environment variables:
 
 ```bash
 EXA_API_KEY
+OPENAI_RESEARCH_MODEL
+OPENAI_RESEARCH_REASONING_EFFORT
+RESEARCH_LIVE_QUERY_COUNT
+RESEARCH_LIVE_SEARCH_RESULTS
+RESEARCH_LIVE_FETCH_RESULTS
 ```
 
-The research route intentionally falls back to seeded demo output when provider
-keys are missing. OpenAI and Supabase runtime variables are configured in Vercel
-for production and development. The OpenAI-backed web researcher path has been
-smoke-tested successfully with a cited web research artifact at
+Dry Run intentionally falls back to seeded demo output when provider keys are
+missing. Real Mode requires provider credentials and surfaces provider failures
+after up to three immediate retries. OpenAI and Supabase runtime variables are
+configured in Vercel for production and development. The fast foreground Real
+Mode path uses `OPENAI_RESEARCH_MODEL` when present, then `OPENAI_MODEL`,
+then `OPENAI_FAST_MODEL`, with high reasoning effort by default. The OpenAI-backed web
+researcher path has been smoke-tested successfully with a cited web research artifact at
 [`docs/research/2026-04-30-web-nextjs-turbopack.md`](research/2026-04-30-web-nextjs-turbopack.md).
+
+Real Mode validation:
+
+```bash
+npm run test:exa
+npm run test:web-researcher
+```
 
 ## Browser Companion
 

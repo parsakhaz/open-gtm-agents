@@ -16,13 +16,15 @@ export function OpportunityFeed({
   selectedId,
   rewriteVariant,
   approvalState,
+  items = opportunities,
 }: {
   visibleIds: string[];
   selectedId?: string;
   rewriteVariant?: keyof OpportunityCard["variants"];
   approvalState?: "idle" | "reviewing" | "rewriting" | "copied";
+  items?: OpportunityCard[];
 }) {
-  const visible = opportunities.filter((opportunity) => visibleIds.includes(opportunity.id));
+  const visible = items.filter((opportunity) => visibleIds.includes(opportunity.id));
   const [userSelectedId, setUserSelectedId] = useState<string | null | undefined>(undefined);
   const activeId = userSelectedId !== undefined ? userSelectedId : selectedId;
 

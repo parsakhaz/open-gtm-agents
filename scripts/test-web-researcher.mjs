@@ -4,7 +4,7 @@ import net from "node:net";
 import path from "node:path";
 import process from "node:process";
 
-const cases = [
+const allCases = [
   {
     name: "api-docs",
     websiteUrl: "https://platform.openai.com/docs/overview",
@@ -31,7 +31,12 @@ const researchReportJsonSchema = {
 loadEnvFile(".env.local");
 loadEnvFile(".env");
 
-const model = process.env.OPENAI_MODEL || "gpt-5.4-mini";
+const model =
+  process.env.OPENAI_RESEARCH_MODEL ||
+  process.env.OPENAI_FAST_MODEL ||
+  process.env.OPENAI_MODEL ||
+  "gpt-5.4-nano";
+const cases = process.env.RESEARCH_TEST_ALL_CASES === "1" ? allCases : allCases.slice(0, 1);
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error("OPENAI_API_KEY is required. Pull Vercel env or create .env.local first.");
@@ -40,12 +45,15 @@ if (!process.env.OPENAI_API_KEY) {
 await verifyOpenAIContract();
 
 const externalBaseUrl = process.env.RESEARCH_TEST_BASE_URL;
-const port = externalBaseUrl ? undefined : await getOpenPort(3135);
-const baseUrl = externalBaseUrl || `http://127.0.0.1:${port}`;
-const server = externalBaseUrl ? undefined : startNextDevServer(port);
+const detectedBaseUrl = externalBaseUrl || await detectExistingResearchServer();
+const port = detectedBaseUrl ? undefined : await getOpenPort(3135);
+const baseUrl = detectedBaseUrl || `http://127.0.0.1:${port}`;
+const server = detectedBaseUrl ? undefined : startNextDevServer(port);
 
 try {
-  if (!externalBaseUrl) {
+  if (detectedBaseUrl) {
+    console.log(`[research-test] using existing server ${detectedBaseUrl}`);
+  } else {
     await waitForServer(baseUrl);
   }
 
@@ -70,7 +78,7 @@ async function verifyOpenAIContract() {
     },
     body: JSON.stringify({
       model,
-      reasoning: { effort: "low" },
+      reasoning: { effort: process.env.OPENAI_RESEARCH_REASONING_EFFORT || "low" },
       input: [
         {
           role: "system",
@@ -298,4 +306,22 @@ function getOpenPort(startPort) {
 
     tryPort(startPort);
   });
+}
+
+async function detectExistingResearchServer() {
+  for (let port = 3000; port <= 3010; port += 1) {
+    const baseUrl = `http://127.0.0.1:${port}`;
+    try {
+      const response = await fetch(`${baseUrl}/api/research/run`, {
+        signal: AbortSignal.timeout(800),
+      });
+      if (response.status === 405) {
+        return baseUrl;
+      }
+    } catch {
+      // Port is not serving this app.
+    }
+  }
+
+  return undefined;
 }

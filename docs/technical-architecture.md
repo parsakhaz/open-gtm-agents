@@ -295,8 +295,8 @@ This protects users from platform bans and keeps the product aligned with useful
 5. Seeded and live-capable research event API. Done at `/api/research/run`.
 6. Supabase schema for runs, profile fields, source results, opportunities, drafts, and feedback. Done and pushed to the linked remote project.
 7. OpenAI-backed web researcher with structured Responses API output. Done and smoke-tested with a cited web research call.
-8. Exa website ingestion. Remaining until `EXA_API_KEY` is configured.
-9. GTM profile inference with live model calls. Remaining.
+8. Exa website ingestion. Done for Real Mode when `EXA_API_KEY` is configured.
+9. GTM profile inference with live model calls. Done for the foreground Real Mode demo path.
 10. Hacker News and GitHub source adapters. Remaining.
 11. Resend approval email flow. Remaining.
 12. Vercel Cron hourly run. Remaining.
@@ -318,6 +318,9 @@ Implemented:
 - Discovery review deck with opportunity queue and focused selected-item review.
 - Seeded rewrite variants and approval/copy actions.
 - Seeded and OpenAI-backed research service with NDJSON API route.
+- Homepage Dry Run / Real Mode toggle.
+- Real Mode uses Exa contents/search plus structured OpenAI calls to stream live profile fields, source results, search angles, and opportunity cards.
+- Provider and agent calls retry up to three immediate attempts and log redacted provider timing/details.
 - OpenAI-backed web researcher smoke test saved at [research/2026-04-30-web-nextjs-turbopack.md](research/2026-04-30-web-nextjs-turbopack.md).
 - Local browser companion relay, generic browser mission service, and dry-run Post now integration.
 - Supabase SQL schema applied to the linked remote project.
@@ -326,7 +329,10 @@ Verified:
 
 - `npm run lint`
 - `npm run build`
+- `npm run test:exa`
 - `npm run test:web-researcher`
 - `npm run dev:local`
 - `npm run browser:mission -- --mission "do something fun on the browser for me surprise me" --start-url "https://neal.fun/" --max-turns 35`
 - Manual web research call using official Next.js sources
+
+The foreground Real Mode path is optimized for demo latency while preserving GTM quality. It uses `OPENAI_RESEARCH_MODEL` when present, then `OPENAI_MODEL`, then `OPENAI_FAST_MODEL`, and defaults reasoning effort from `OPENAI_RESEARCH_REASONING_EFFORT` to high. The nano/low profile remains useful for speed benchmarking, but the default live demo path favors mini/high so external research missions are less brittle.

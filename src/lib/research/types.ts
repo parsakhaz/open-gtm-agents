@@ -136,6 +136,12 @@ export type ResearchRunEvent =
       createdAt: string;
     }
   | {
+      type: "source_result";
+      runId: string;
+      source: SourceReference;
+      createdAt: string;
+    }
+  | {
       type: "opportunity";
       runId: string;
       opportunity: ResearchOpportunity;

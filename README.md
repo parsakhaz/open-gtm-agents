@@ -209,9 +209,12 @@ It includes:
 - lucide interface icons
 - Framer Motion transitions
 - Streamed comment opportunities, original post ideas, and competitive insights
+- Dry Run / Real Mode toggle on the homepage
+- Real Mode streams live Exa-backed GTM profile, source, search, and opportunity events through `/api/research/run`
 - Focused review deck with rewrite/copy/open actions
 - Seeded and OpenAI-backed research API route
 - Local browser companion flow for approved browser missions and dry-run Post now actions
+- Fast live research smoke tested with `gpt-5.4-nano`, Exa, and streamed NDJSON events
 - OpenAI-backed web researcher verified with a cited web research smoke test at [docs/research/2026-04-30-web-nextjs-turbopack.md](docs/research/2026-04-30-web-nextjs-turbopack.md)
 - Supabase client helpers
 - Supabase schema applied to the linked remote project
@@ -221,6 +224,7 @@ Verified with:
 
 - `npm run lint`
 - `npm run build`
+- `npm run test:exa`
 - `npm run test:web-researcher`
 - `npm run dev:local`
 - `npm run browser:mission -- --mission "do something fun on the browser for me surprise me" --start-url "https://neal.fun/" --max-turns 35`
@@ -245,6 +249,9 @@ By default it:
 - starts the Electron browser companion relay at `http://127.0.0.1:4123`, or the next available port
 - passes the selected `BROWSER_RELAY_URL` into Next
 - keeps the browser mission model from `.env.local`, currently `OPENAI_MODEL=gpt-5.4-mini`
+- uses `OPENAI_RESEARCH_MODEL` when set for Real Mode, otherwise `OPENAI_MODEL`, then `OPENAI_FAST_MODEL`
+
+Real Mode is tuned for the foreground demo path: Exa fetches/searches are kept small, provider calls retry up to three times, and the default model is the mini tier with high reasoning for better GTM/search quality. The fast nano profile remains available by setting `OPENAI_RESEARCH_MODEL=gpt-5.4-nano` and `OPENAI_RESEARCH_REASONING_EFFORT=low`.
 
 Useful options:
 

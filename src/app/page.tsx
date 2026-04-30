@@ -28,11 +28,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { demoUrl, opportunities, schemaSections, searchStrategy, skippedOpportunities } from "@/lib/dry-run/demo-data";
 import { useDryRun } from "@/lib/dry-run/use-dry-run";
+import type { SourceReference } from "@/lib/research/types";
+import { useRealResearchRun } from "@/lib/research/use-real-research-run";
+
+type RunMode = "dry" | "real";
 
 export default function Home() {
   const [url, setUrl] = useState(demoUrl);
   const [isRunning, setIsRunning] = useState(false);
-  const { state, progress, gate, proceed } = useDryRun(isRunning);
+  const [runMode, setRunMode] = useState<RunMode>("dry");
+  const dryRun = useDryRun(isRunning && runMode === "dry");
+  const realRun = useRealResearchRun({ url, isRunning: isRunning && runMode === "real" });
+  const activeRun = runMode === "dry" ? dryRun : realRun;
+  const { state, progress, gate, proceed } = activeRun;
+  const liveSchemaSections = runMode === "real" ? realRun.schemaSections : undefined;
+  const liveOpportunities = runMode === "real" ? realRun.opportunities : undefined;
+  const liveSourceResults = runMode === "real" ? realRun.sourceResults : undefined;
+  const opportunityCount = liveOpportunities?.length ?? opportunities.length;
 
   function startRun(event?: FormEvent) {
     event?.preventDefault();
@@ -89,6 +101,7 @@ export default function Home() {
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </form>
+                  <RunModeToggle value={runMode} onChange={setRunMode} />
                 </div>
               </div>
             </motion.div>
@@ -101,6 +114,7 @@ export default function Home() {
                   <ConnectingPanel
                     step={state.onboardingStep ?? "connecting"}
                     visibleIds={state.schemaIds}
+                    sections={liveSchemaSections}
                   />
                 </div>
                 <motion.div
@@ -121,7 +135,7 @@ export default function Home() {
                     />
                   </div>
                   <div className="mt-4">
-                    <SchemaStreamPanel visibleIds={state.schemaIds} compact />
+                    <SchemaStreamPanel visibleIds={state.schemaIds} sections={liveSchemaSections} compact />
                   </div>
                   {gate === "profile" && (
                     <motion.div
@@ -149,6 +163,9 @@ export default function Home() {
                 activeStage={state.activeStage}
                 activeMessage={state.activeMessage}
                 ready={gate === "research"}
+                showSeededStrategy={runMode === "dry"}
+                opportunityCount={opportunityCount}
+                sourceResults={liveSourceResults}
               />
             ) : (
               <motion.div
@@ -162,9 +179,10 @@ export default function Home() {
                   selectedId={state.selectedOpportunityId}
                   rewriteVariant={state.rewriteVariant}
                   approvalState={state.approvalState}
+                  items={liveOpportunities}
                 />
-                <ResearchInsights searches={state.searches} />
-                <MonitoringSummary complete={state.phase === "complete"} />
+                <ResearchInsights searches={state.searches} showSeededStrategy={runMode === "dry"} />
+                {runMode === "dry" && <MonitoringSummary complete={state.phase === "complete"} />}
               </motion.div>
             )}
           </section>
@@ -179,15 +197,22 @@ function ResearchBoard({
   activeStage,
   activeMessage,
   ready,
+  showSeededStrategy,
+  opportunityCount,
+  sourceResults = [],
 }: {
   searches: Array<{ source: "reddit" | "x" | "hacker_news" | "github" | "web" | "resend"; query: string }>;
   activeStage: string;
   activeMessage: string;
   ready: boolean;
+  showSeededStrategy: boolean;
+  opportunityCount: number;
+  sourceResults?: SourceReference[];
 }) {
   const groups = groupedSearches(searches);
   const totalQueries = groups.reduce((count, group) => count + group.keywords.length, 0);
-  const usefulCount = ready ? opportunities.length : Math.min(opportunities.length, Math.max(1, groups.length));
+  const usefulCount = ready ? opportunityCount : Math.min(opportunityCount, Math.max(1, groups.length));
+  const sourceMetric = showSeededStrategy ? groups.length : Math.max(groups.length, sourceResults.length);
 
   return (
     <motion.div
@@ -202,18 +227,18 @@ function ResearchBoard({
           <p className="mt-2 text-base leading-7 text-muted-foreground">{activeMessage}</p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <ResearchMetric label="Sources" value={groups.length} />
+          <ResearchMetric label="Sources" value={sourceMetric} />
           <ResearchMetric label="Queries" value={totalQueries} />
           <ResearchMetric label="Useful" value={usefulCount} />
-          <ResearchMetric label="Skipped" value={ready ? skippedOpportunities.length : "..."} />
+          <ResearchMetric label="Skipped" value={showSeededStrategy && ready ? skippedOpportunities.length : "..."} />
         </div>
       </div>
 
-      <SearchStrategyCard />
+      {showSeededStrategy && <SearchStrategyCard />}
 
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <AnimatePresence initial={false}>
-          {groups.map((group, index) => (
+          {showSeededStrategy ? groups.map((group, index) => (
             <motion.div
               key={group.source}
               layout
@@ -253,10 +278,36 @@ function ResearchBoard({
                 ))}
               </div>
             </motion.div>
+          )) : sourceResults.map((source, index) => (
+            <motion.a
+              key={source.url}
+              href={source.url}
+              target="_blank"
+              rel="noreferrer"
+              layout
+              initial={{ opacity: 0, y: 18, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: index * 0.04, duration: 0.28 }}
+              className="min-h-[220px] rounded-lg border bg-card p-4 shadow-sm transition hover:shadow-md"
+            >
+              <div className="mb-4 flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
+                  <SourceIcon source={source.source} className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold">{sourceLabel(source.source)}</div>
+                  <div className="truncate text-xs text-muted-foreground">{hostnameForDisplay(source.url)}</div>
+                </div>
+              </div>
+              <h3 className="line-clamp-2 text-base font-semibold tracking-normal">{source.title}</h3>
+              <p className="mt-3 line-clamp-5 text-sm leading-6 text-muted-foreground">
+                {source.snippet || source.fetchedContent || "Fetched source content for live opportunity research."}
+              </p>
+            </motion.a>
           ))}
         </AnimatePresence>
-        {groups.length < 5 &&
-          Array.from({ length: 5 - groups.length }).map((_, index) => (
+        {(showSeededStrategy ? groups.length : sourceResults.length) < 5 &&
+          Array.from({ length: 5 - (showSeededStrategy ? groups.length : sourceResults.length) }).map((_, index) => (
             <div
               key={index}
               className="min-h-[220px] rounded-lg border border-dashed bg-card/45 p-4 opacity-60"
@@ -278,7 +329,7 @@ function ResearchBoard({
       </div>
 
       <AnimatePresence initial={false}>
-        {ready && (
+        {showSeededStrategy && ready && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -312,8 +363,10 @@ function ResearchBoard({
 
 function ResearchInsights({
   searches,
+  showSeededStrategy,
 }: {
   searches: Array<{ source: "reddit" | "x" | "hacker_news" | "github" | "web" | "resend"; query: string }>;
+  showSeededStrategy: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const groups = groupedSearches(searches);
@@ -336,7 +389,7 @@ function ResearchInsights({
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <ResearchMetric label="Sources" value={groups.length} />
           <ResearchMetric label="Queries" value={totalQueries} />
-          <ResearchMetric label="Filtered" value={skippedOpportunities.length} />
+          <ResearchMetric label="Filtered" value={showSeededStrategy ? skippedOpportunities.length : "..."} />
           <ChevronDown
             className={`h-5 w-5 text-muted-foreground transition ${open ? "rotate-180" : ""}`}
           />
@@ -351,9 +404,9 @@ function ResearchInsights({
             className="overflow-hidden border-t"
           >
             <div className="space-y-4 p-4">
-              <SearchStrategyCard compact />
+              {showSeededStrategy && <SearchStrategyCard compact />}
               <SearchQueryDetails groups={groups} />
-              <SkippedOpportunityDetails />
+              {showSeededStrategy && <SkippedOpportunityDetails />}
             </div>
           </motion.div>
         )}
@@ -459,17 +512,60 @@ function ResearchMetric({ label, value }: { label: string; value: number | strin
   );
 }
 
+function hostnameForDisplay(url: string) {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+}
+
+function RunModeToggle({
+  value,
+  onChange,
+}: {
+  value: RunMode;
+  onChange: (value: RunMode) => void;
+}) {
+  const options: Array<{ value: RunMode; label: string }> = [
+    { value: "dry", label: "Dry run" },
+    { value: "real", label: "Real mode" },
+  ];
+
+  return (
+    <div className="mt-3 inline-grid grid-cols-2 rounded-md border bg-white p-1 shadow-sm">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          className={`h-9 min-w-28 rounded-sm px-3 text-sm font-semibold transition ${
+            value === option.value
+              ? "bg-[#1f2b24] text-white shadow-sm"
+              : "text-muted-foreground hover:bg-muted"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ConnectingPanel({
   step,
   visibleIds,
+  sections,
 }: {
   step: "connecting" | "trust" | "content" | "analysis";
   visibleIds: string[];
+  sections?: typeof schemaSections;
 }) {
+  const activeSections = sections?.length ? sections : schemaSections;
   const steps = [
-    { id: "connecting", label: schemaSections[0]?.label ?? "Product summary" },
-    { id: "trust", label: schemaSections[1]?.label ?? "Target customer" },
-    { id: "content", label: schemaSections[2]?.label ?? "Pain points" },
+    { id: "connecting", label: activeSections[0]?.label ?? "Product summary" },
+    { id: "trust", label: activeSections[1]?.label ?? "Target customer" },
+    { id: "content", label: activeSections[2]?.label ?? "Pain points" },
   ] as const;
   const activeIndex = Math.max(0, steps.findIndex((item) => item.id === step));
 
@@ -564,7 +660,7 @@ function ConnectingPanel({
         </div>
 
         <div className="mx-auto mt-6 max-w-7xl">
-          <SchemaStreamPanel visibleIds={visibleIds} compact />
+          <SchemaStreamPanel visibleIds={visibleIds} sections={sections} compact />
         </div>
       </motion.div>
     </div>
@@ -582,7 +678,7 @@ function RunControls({
   onProceed: () => void;
   onRestart: () => void;
 }) {
-  const proceedLabel = gate === "profile" ? "Proceed to research" : "Review opportunities";
+  const proceedLabel = gate === "profile" ? "Proceed to research" : "Rank opportunities";
 
   return (
     <div className="flex min-w-0 flex-1 items-center justify-end gap-3">
