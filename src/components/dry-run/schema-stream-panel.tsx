@@ -29,7 +29,7 @@ export function SchemaStreamPanel({
           </Badge>
         </div>
       </div>
-      <div className={`min-h-0 flex-1 gap-3 overflow-y-auto p-4 ${compact ? "grid md:grid-cols-2" : "space-y-3"}`}>
+      <div className={`min-h-0 flex-1 gap-3 overflow-y-auto p-4 ${compact ? "grid md:grid-cols-2 xl:grid-cols-3" : "space-y-3"}`}>
         <AnimatePresence initial={false}>
           {visible.map((section) => (
             <motion.div

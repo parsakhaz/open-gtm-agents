@@ -8,6 +8,7 @@ import {
   Clock3,
   Eye,
   Globe2,
+  Loader2,
   Mail,
   Play,
   Radar,
@@ -142,7 +143,7 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.35 }}
-                  className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_430px]"
+                  className="grid gap-4"
                 >
                   {state.onboardingStep !== "analysis" ? (
                     <ConnectingPanel
@@ -157,7 +158,7 @@ export default function Home() {
                           scroll={state.websiteScroll}
                         />
                       </div>
-                      <SchemaStreamPanel visibleIds={state.schemaIds} />
+                      <SchemaStreamPanel visibleIds={state.schemaIds} compact />
                     </>
                   )}
                 </motion.div>
@@ -246,7 +247,7 @@ function ConnectingPanel({
             <p className="mb-6 text-sm leading-6 text-[#6e5a55] italic">
               &ldquo;Most salons don&apos;t lose clients. They just couldn&apos;t answer the phone.&rdquo;
             </p>
-            <div className="absolute top-14 bottom-0 left-[11px] w-px bg-[#e7b2a9]" />
+            <div className="absolute top-14 bottom-0 left-[11px] w-px bg-border" />
             <div className="space-y-5">
               {steps.map((item, index) => {
                 const active = index === activeIndex;
@@ -257,23 +258,29 @@ function ConnectingPanel({
                     <div
                       className={`z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-[#fff8f3] ${
                         active
-                          ? "border-[#db5f58] bg-[#db5f58] text-white"
+                          ? "border-primary bg-primary text-primary-foreground"
                           : done
-                            ? "border-[#db5f58] bg-[#fff0eb] text-[#db5f58]"
-                            : "border-[#e7b2a9] text-[#e7b2a9]"
+                            ? "border-primary bg-primary/20 text-primary-foreground"
+                            : "border-border text-muted-foreground"
                       }`}
                     >
-                      {done ? <CheckCircle2 className="h-3 w-3" /> : <span className="h-2 w-2 rounded-full bg-current" />}
+                      {done ? (
+                        <CheckCircle2 className="h-3 w-3" />
+                      ) : active ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <span className="h-2 w-2 rounded-full bg-current" />
+                      )}
                     </div>
                     <div>
-                      <div className="text-[11px] font-bold tracking-[0.08em] text-[#3c2b27] uppercase">
+                      <div className="text-[11px] font-bold tracking-[0.08em] text-foreground uppercase">
                         {item.label}
                       </div>
                       {active && (
                         <motion.div
                           initial={{ opacity: 0, y: -4 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="mt-1 text-xs text-[#8a6b62]"
+                          className="mt-1 text-xs text-muted-foreground"
                         >
                           {step === "content"
                             ? "Synthesizing page content into GTM context..."

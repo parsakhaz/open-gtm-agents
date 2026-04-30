@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Circle, Eye, Lock, MonitorUp, Search } from "lucide-react";
+import { Check, Circle, Eye, Loader2, Lock, MonitorUp, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ export function WebsitePreviewFrame({
   }, [activeIndex]);
 
   return (
-    <div className="grid min-h-[600px] items-center gap-6 lg:grid-cols-[minmax(0,1fr)_230px]">
+    <div className="mx-auto grid min-h-[600px] w-full max-w-7xl items-center gap-8 lg:grid-cols-[minmax(0,1fr)_250px]">
       <motion.div
         initial={{ opacity: 0, y: 18, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -62,7 +62,7 @@ export function WebsitePreviewFrame({
                 <motion.div
                   animate={{ y: -iframeOffset }}
                   transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-                  className="h-full w-full origin-top scale-[0.68] overflow-hidden rounded-sm bg-white"
+                  className="h-full w-full origin-top scale-[0.76] overflow-hidden rounded-sm bg-white"
                 >
                   <iframe
                     src={demoUrl}
@@ -149,7 +149,7 @@ export function WebsitePreviewFrame({
         <p className="mb-6 text-sm leading-6 text-[#6e5a55] italic">
           &ldquo;Most salons don&apos;t lose clients. They just couldn&apos;t answer the phone.&rdquo;
         </p>
-        <div className="absolute top-14 bottom-0 left-[11px] w-px bg-[#e7b2a9]" />
+            <div className="absolute top-14 bottom-0 left-[11px] w-px bg-border" />
         <div className="space-y-4">
           {websiteSections.map((section, index) => {
             const isActive = section.id === activeSection;
@@ -164,21 +164,27 @@ export function WebsitePreviewFrame({
                 <div
                   className={cn(
                     "z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-[#fff8f3]",
-                    isActive && "border-[#db5f58] bg-[#db5f58] text-white",
-                    isDone && "border-[#db5f58] bg-[#fff0eb] text-[#db5f58]",
+                    isActive && "border-primary bg-primary text-primary-foreground",
+                    isDone && "border-primary bg-primary/20 text-primary-foreground",
                   )}
                 >
-                  {isDone ? <Check className="h-3 w-3" /> : <Circle className="h-2.5 w-2.5 fill-current" />}
+                  {isDone ? (
+                    <Check className="h-3 w-3" />
+                  ) : isActive ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Circle className="h-2.5 w-2.5 fill-current" />
+                  )}
                 </div>
                 <div className="min-w-0 pb-1">
-                  <div className="text-[11px] font-bold tracking-[0.08em] text-[#3c2b27] uppercase">
+                  <div className="text-[11px] font-bold tracking-[0.08em] text-foreground uppercase">
                     {section.label}
                   </div>
                   {isActive && (
                     <motion.div
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="mt-1 text-xs text-[#8a6b62]"
+                      className="mt-1 text-xs text-muted-foreground"
                     >
                       Synthesizing evidence from this section...
                     </motion.div>
