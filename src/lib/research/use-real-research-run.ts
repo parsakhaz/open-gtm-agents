@@ -32,6 +32,7 @@ const initialState: VisibleState = {
 
 const liveWebsiteSections = [
   "navigation",
+  "hero",
   "how-it-works",
   "social-proof",
   "stats",
@@ -208,6 +209,7 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
           activeStage: "Inferring GTM profile",
         }));
         setProgress((current) => Math.max(current, 28));
+        await sleep(750);
         return;
       }
 
@@ -330,6 +332,6 @@ function liveWebsiteSectionFor(index: number) {
 }
 
 function liveWebsiteScrollFor(index: number) {
-  const scrollStops = [6, 22, 42, 62, 82];
+  const scrollStops = [0, 8, 28, 48, 68, 86];
   return scrollStops[Math.min(index, scrollStops.length - 1)];
 }
