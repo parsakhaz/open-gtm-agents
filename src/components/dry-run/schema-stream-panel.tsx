@@ -21,7 +21,7 @@ export function SchemaStreamPanel({
         <div className="flex items-center justify-between">
           <div>
             <div className="text-xs font-semibold text-muted-foreground">GTM profile</div>
-            <h2 className="mt-1 text-lg font-semibold tracking-normal">Streaming answers</h2>
+            <h2 className="mt-1 text-lg font-semibold tracking-normal">What we learned</h2>
           </div>
           <Badge variant="success" className="gap-1">
             <Sparkles className="h-3 w-3" />
@@ -52,7 +52,7 @@ export function SchemaStreamPanel({
                 {section.suggestions.map((suggestion) => (
                   <button
                     key={suggestion}
-                    className="rounded-full border bg-[#f9fbf8] px-2.5 py-1 text-[11px] font-medium text-[#315f4d] transition hover:border-primary"
+                    className="cursor-pointer rounded-full border bg-[#f9fbf8] px-2.5 py-1 text-[11px] font-medium text-[#315f4d] transition hover:border-primary"
                   >
                     + {suggestion}
                   </button>

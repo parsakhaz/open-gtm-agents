@@ -134,7 +134,7 @@ export function WebsitePreviewFrame({
                     ))}
                   </div>
                   {section.cta && (
-                    <button className="mt-6 rounded-md bg-[#e85f58] px-4 py-2 text-xs font-semibold text-white">
+                  <button className="mt-6 cursor-pointer rounded-md bg-[#e85f58] px-4 py-2 text-xs font-semibold text-white">
                       {section.cta}
                     </button>
                   )}

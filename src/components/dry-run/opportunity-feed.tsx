@@ -57,7 +57,7 @@ export function OpportunityFeed({
                 transition={{ duration: 0.28 }}
                 onClick={() => setSelected(opportunity)}
                 className={cn(
-                  "w-full rounded-lg border bg-card p-4 text-left shadow-sm transition hover:opacity-100 hover:shadow-md",
+                  "w-full cursor-pointer rounded-lg border bg-card p-4 text-left shadow-sm transition hover:opacity-100 hover:shadow-md",
                   isActive && "border-primary/50 bg-primary/10",
                 )}
               >
@@ -190,7 +190,7 @@ function OpportunityDetail({
         </Badge>
         <TypeBadge type={opportunity.type} />
         {approvalState === "reviewing" && <Badge variant="outline">User reviewing</Badge>}
-        {approvalState === "rewriting" && <Badge variant="warning">Refining draft</Badge>}
+        {approvalState === "rewriting" && <Badge variant="warning">Making it natural</Badge>}
         {approvalState === "copied" && <Badge variant="success">Copied</Badge>}
       </div>
       <h3 className="text-lg font-semibold tracking-normal">{opportunity.title}</h3>

@@ -21,7 +21,6 @@ import { SchemaStreamPanel } from "@/components/dry-run/schema-stream-panel";
 import { WebsitePreviewFrame } from "@/components/dry-run/website-preview-frame";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { demoUrl } from "@/lib/dry-run/demo-data";
 import { useDryRun } from "@/lib/dry-run/use-dry-run";
@@ -49,21 +48,7 @@ export default function Home() {
             </div>
             <div>
               <div className="text-sm font-bold tracking-normal">Open GTM Agents</div>
-              <div className="text-xs text-muted-foreground">Dry-run demo workspace</div>
             </div>
-          </div>
-          <div className="hidden items-center gap-2 md:flex">
-            <Badge variant="outline" className="gap-1">
-              <SimpleIcon slug="github" className="h-3 w-3" />
-              GitHub issues
-            </Badge>
-            <Badge variant="outline" className="gap-1">
-              <SimpleIcon slug="reddit" className="h-3 w-3" />
-              Reddit
-            </Badge>
-            <Badge variant="outline" className="gap-1">
-              <SimpleIcon slug="x" className="h-3 w-3" />X / web
-            </Badge>
           </div>
         </header>
 

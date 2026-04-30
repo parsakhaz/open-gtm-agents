@@ -108,16 +108,16 @@ export function useDryRun(isRunning: boolean) {
           ...current,
           rewriteVariant: "softer",
           approvalState: "rewriting",
-          activeStage: "Refining draft",
-          activeMessage: "The founder chooses a softer version before copying the reply.",
+          activeStage: "Making it sound natural",
+          activeMessage: "Softening the reply so it feels helpful instead of promotional.",
         }));
       }, 20400),
       window.setTimeout(() => {
         setState((current) => ({
           ...current,
           approvalState: "copied",
-          activeStage: "Draft copied",
-          activeMessage: "The first reply is ready to paste manually into the original thread.",
+          activeStage: "Reply ready",
+          activeMessage: "The first reply is ready to paste into the original thread.",
         }));
       }, 22200),
       window.setTimeout(() => {
@@ -126,8 +126,8 @@ export function useDryRun(isRunning: boolean) {
           selectedOpportunityId: "x-ai-receptionist",
           rewriteVariant: undefined,
           approvalState: "reviewing",
-          activeStage: "Streaming next matches",
-          activeMessage: "The agent keeps searching while the user reviews the next best item.",
+          activeStage: "Finding the next opportunity",
+          activeMessage: "More relevant conversations are coming in while you review.",
         }));
       }, 23800),
     ];
