@@ -2,13 +2,13 @@
 
 Open GTM Agents helps founders and teams find the right moments to be useful online.
 
-The product starts from a simple input: a landing page. From there, it builds a working GTM profile, identifies unanswered context, and turns public market signals into a daily set of high-intent opportunities to comment, post, learn, and compete.
+The product starts from a simple input: a landing page. From there, it builds a working GTM profile, identifies unanswered context, and turns public market signals into a recurring stream of high-intent opportunities to comment, post, learn, and compete.
 
 The goal is not to automate spam. The goal is to make thoughtful, well-timed GTM work easier to repeat.
 
 ## What It Does
 
-Open GTM Agents monitors public conversations and market activity for moments where a product can be genuinely helpful.
+Open GTM Agents monitors public conversations and market activity for moments where a product can be genuinely helpful. It should support both comment opportunities and original post suggestions from day one.
 
 It looks for things like:
 
@@ -18,7 +18,13 @@ It looks for things like:
 - Launches, comments, and threads where the product's perspective is relevant
 - New competitors, positioning shifts, and repeated market complaints
 
-The agent then ranks opportunities, explains why they matter, and drafts responses or post ideas for human review.
+The agent then ranks opportunities, explains why they matter, and drafts responses or post ideas for human review. When new opportunities are found, the user can be notified by email so they can respond while the conversation is still fresh.
+
+The product can be organized around specialized agents:
+
+- Comment Opportunity Agent: finds places to reply usefully.
+- Original Post Agent: suggests posts the user should write based on observed demand.
+- Competitive Intelligence Agent: runs during onboarding and later research to understand alternatives, gaps, and market movement.
 
 ## Core Belief
 
@@ -32,7 +38,7 @@ The useful question is not only "who mentioned us?" It is:
 
 ## Onboarding
 
-The primary onboarding flow starts with the user's landing page.
+The primary onboarding flow starts with only the user's landing page.
 
 1. The user enters their website.
 2. The system fetches and reads the site as the primary source of truth.
@@ -40,7 +46,11 @@ The primary onboarding flow starts with the user's landing page.
 4. The user reviews what was inferred and fills only the important gaps.
 5. Each editable section includes expert suggestions the user can add with one click.
 
-The experience should feel less like filling out a form and more like reviewing a smart first draft of the company's go-to-market context.
+The experience should feel less like filling out a form and more like reviewing a smart first draft of the company's go-to-market context. The inferred context becomes shared context for every agent.
+
+For the hackathon experience, onboarding should be visual and live. The user should see the agent working through stages as they happen: reading the website, inferring the profile, generating search angles, searching sources, ranking opportunities, and drafting comments.
+
+The first build should start with a high-quality dry-run mode. Dry run mode should wire the full front-end experience and stream realistic agent progress, profile updates, and opportunity cards before every external integration is complete.
 
 ## GTM Profile
 
@@ -60,7 +70,7 @@ Each field can be inferred with confidence. High-confidence fields are shown for
 
 ## Dynamic Questions
 
-The system should only ask questions that materially improve the agent's ability to find and prioritize opportunities.
+The system should only ask questions that materially improve the agent's ability to find and prioritize opportunities. Those questions should come from a simple schema of GTM context fields that the agents use later.
 
 Examples:
 
@@ -70,9 +80,9 @@ Examples:
 
 Every field the user can improve should include two or three suggested additions generated from a GTM expert perspective.
 
-## Opportunity Inbox
+## Live Opportunity Discovery
 
-The daily output is an opportunity inbox.
+The primary output is an opportunity inbox that updates as the agent finds useful moments.
 
 Each item should include:
 
@@ -86,6 +96,35 @@ Each item should include:
 - Notes on platform norms
 
 The user should be able to approve, edit, copy, dismiss, or teach the system why the item was not useful.
+
+The interface should stream opportunities into the page one by one instead of waiting for the full research run to finish. The agent's progress should be visible through status updates and source activity. Visual quality matters for the hackathon, so the live run page should be treated as a core product surface.
+
+Example stages:
+
+- Reading website
+- Inferring GTM profile
+- Generating search angles
+- Searching Reddit, X, Hacker News, GitHub issues, and the web
+- Evaluating fit and risk
+- Drafting suggested comments
+- Sending email alerts for meaningful new opportunities
+
+## Hourly Agent
+
+After onboarding, the agent should run every hour.
+
+The recurring workflow should:
+
+1. Look up active product profiles.
+2. Search configured sources for new relevant conversations.
+3. Dedupe against previous opportunities.
+4. Score relevance, freshness, intent, risk, and novelty.
+5. Save high-quality opportunities.
+6. Email the user when there is something worth acting on quickly.
+
+Email should be reserved for meaningful deltas, not every run.
+
+When an opportunity needs user approval, Resend should email the user. The email is an urgency layer; the app remains the approval and review surface.
 
 ## Human Review
 
@@ -127,7 +166,31 @@ The first version should focus on a narrow, high-quality loop:
 1. Understand the product from the landing page.
 2. Build a draft GTM profile.
 3. Ask only the highest-leverage missing questions.
-4. Find daily opportunities to comment or post.
-5. Draft helpful responses for human approval.
-6. Learn from what the user accepts, edits, or rejects.
+4. Run a polished dry-run mode that demonstrates the full live experience.
+5. Stream comment and post opportunities into a live run view.
+6. Continue researching every hour.
+7. Email the user when there are high-quality new opportunities needing approval.
+8. Draft helpful responses for human approval.
+9. Learn from what the user accepts, edits, or rejects.
 
+## Technical Direction
+
+The first build should prioritize speed and a polished demo experience.
+
+Current stack direction:
+
+- Vercel Pro for hosting, functions, cron, and deployment
+- Next.js for the web app
+- Vercel AI SDK for model calls, structured outputs, and streaming
+- OpenRouter as the model provider
+- Exa for landing page ingestion, web search, and source content
+- Supabase for Postgres, auth, run state, and later vector search
+- Resend for email notifications
+- xAI or the provided web researcher agent for broad web and social research
+- GitHub APIs for issue and repository search
+- Hacker News public APIs for Hacker News search
+- Apify or RapidAPI only if needed as a fallback for source access
+
+See [docs/technical-architecture.md](docs/technical-architecture.md) for the working architecture.
+
+See [docs/dry-run-demo.md](docs/dry-run-demo.md) for the dry-run user journeys, judge pitch flow, and frontend-first demo plan.
