@@ -15,9 +15,10 @@ import {
 } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { SimpleIcon } from "@/components/brand/simple-icon";
-import { ActivityTimeline } from "@/components/dry-run/activity-timeline";
+import { groupedSearches } from "@/components/dry-run/activity-timeline";
 import { OpportunityFeed } from "@/components/dry-run/opportunity-feed";
 import { SchemaStreamPanel } from "@/components/dry-run/schema-stream-panel";
+import { SourceIcon, sourceLabel } from "@/components/dry-run/source-icon";
 import { WebsitePreviewFrame } from "@/components/dry-run/website-preview-frame";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -120,33 +121,139 @@ export default function Home() {
                   </div>
                 </motion.div>
               </div>
+            ) : state.phase === "discovery" ? (
+              <ResearchBoard
+                searches={state.searches}
+                activeStage={state.activeStage}
+                activeMessage={state.activeMessage}
+              />
             ) : (
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]"
+                className="grid gap-4"
               >
-                <div className="space-y-4">
-                  <ActivityTimeline
-                    searches={state.searches}
-                    activeStage={state.activeStage}
-                    activeMessage={state.activeMessage}
-                  />
-                  <MonitoringSummary complete={state.phase === "complete"} />
-                </div>
                 <OpportunityFeed
                   visibleIds={state.opportunityIds}
                   selectedId={state.selectedOpportunityId}
                   rewriteVariant={state.rewriteVariant}
                   approvalState={state.approvalState}
                 />
+                <MonitoringSummary complete={state.phase === "complete"} />
               </motion.div>
             )}
           </section>
         )}
       </div>
     </main>
+  );
+}
+
+function ResearchBoard({
+  searches,
+  activeStage,
+  activeMessage,
+}: {
+  searches: Array<{ source: "reddit" | "x" | "hacker_news" | "github" | "web" | "resend"; query: string }>;
+  activeStage: string;
+  activeMessage: string;
+}) {
+  const groups = groupedSearches(searches);
+  const totalQueries = groups.reduce((count, group) => count + group.keywords.length, 0);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className="rounded-xl border bg-white/80 p-5 shadow-sm backdrop-blur"
+    >
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-3xl">
+          <Badge variant="success" className="mb-3 gap-1">
+            <Sparkles className="h-3 w-3" />
+            Live research
+          </Badge>
+          <h2 className="text-3xl font-semibold tracking-normal">{activeStage}</h2>
+          <p className="mt-2 text-base leading-7 text-muted-foreground">{activeMessage}</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <ResearchMetric label="Sources" value={groups.length} />
+          <ResearchMetric label="Queries" value={totalQueries} />
+          <ResearchMetric label="Matches" value="live" />
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <AnimatePresence initial={false}>
+          {groups.map((group, index) => (
+            <motion.div
+              key={group.source}
+              layout
+              initial={{ opacity: 0, y: 18, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: index * 0.04, duration: 0.28 }}
+              className="min-h-[220px] rounded-lg border bg-card p-4 shadow-sm"
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
+                    <SourceIcon source={group.source} className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold">{sourceLabel(group.source)}</div>
+                    <div className="text-xs text-muted-foreground">Searching relevant conversations</div>
+                  </div>
+                </div>
+                <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" />
+              </div>
+              <div className="space-y-2">
+                {group.keywords.map((keyword) => (
+                  <motion.div
+                    key={keyword}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="rounded-md border bg-background px-3 py-2 text-sm font-medium leading-5"
+                  >
+                    {keyword}
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+        {groups.length < 5 &&
+          Array.from({ length: 5 - groups.length }).map((_, index) => (
+            <div
+              key={index}
+              className="min-h-[220px] rounded-lg border border-dashed bg-card/45 p-4 opacity-60"
+            >
+              <div className="mb-4 flex items-center gap-3">
+                <div className="h-10 w-10 rounded-md bg-muted" />
+                <div className="space-y-2">
+                  <div className="h-3 w-24 rounded-full bg-muted" />
+                  <div className="h-2.5 w-36 rounded-full bg-muted" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-9 rounded-md bg-muted/70" />
+                <div className="h-9 rounded-md bg-muted/50" />
+                <div className="h-9 rounded-md bg-muted/30" />
+              </div>
+            </div>
+          ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function ResearchMetric({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="min-w-24 rounded-md border bg-background px-4 py-3 text-center">
+      <div className="text-lg font-bold">{value}</div>
+      <div className="text-[10px] font-medium text-muted-foreground uppercase">{label}</div>
+    </div>
   );
 }
 

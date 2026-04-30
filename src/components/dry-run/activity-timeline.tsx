@@ -62,10 +62,10 @@ export function ActivityTimeline({
   );
 }
 
-function groupedSearches(searches: Array<{ source: SourceId; query: string }>) {
+export function groupedSearches(searches: Array<{ source: SourceId; query: string }>) {
   return searches.reduce<Array<{ source: SourceId; keywords: string[] }>>((groups, search) => {
     const existing = groups.find((group) => group.source === search.source);
-    const keywords = splitKeywords(search.query);
+    const keywords = expandSearchQueries(search.query);
 
     if (existing) {
       existing.keywords = Array.from(new Set([...existing.keywords, ...keywords]));
@@ -76,7 +76,7 @@ function groupedSearches(searches: Array<{ source: SourceId; query: string }>) {
   }, []);
 }
 
-function splitKeywords(query: string) {
+export function expandSearchQueries(query: string) {
   const additions: Record<string, string[]> = {
     "salon missed calls receptionist alternative": [
       'site:reddit.com/r/salonowners "missed calls" "salon"',
