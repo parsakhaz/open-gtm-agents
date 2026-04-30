@@ -68,90 +68,30 @@ export default function Home() {
         </header>
 
         {!isRunning ? (
-          <section className="grid flex-1 place-items-center py-8">
+          <section className="grid flex-1 place-items-center bg-white py-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="w-full max-w-7xl"
+              className="w-full"
             >
-              <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground">
-                <div className="flex items-center gap-3">
-                  <span className="grid h-4 w-4 grid-cols-2 gap-0.5">
-                    {Array.from({ length: 4 }).map((_, index) => (
-                      <span key={index} className="rounded-full bg-muted-foreground/55" />
-                    ))}
-                  </span>
-                  <span className="font-semibold">01 · URL drop</span>
-                </div>
-                <ArrowRight className="h-4 w-4 -rotate-45" />
-              </div>
-
-              <div className="overflow-hidden rounded-lg border bg-white shadow-lg">
-                <div className="bg-[#1f2024] px-4 pt-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-2 pr-3">
-                      <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-                      <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
-                      <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-                    </div>
-                    <div className="flex h-10 min-w-0 items-center gap-2 rounded-t-lg bg-[#303136] px-4 text-sm text-white">
-                      <span className="h-3 w-3 rounded-full bg-white/20" />
-                      Open GTM Agents
-                    </div>
-                    <div className="hidden h-10 min-w-0 items-center gap-2 rounded-t-lg bg-[#303136]/70 px-4 text-sm text-white/55 md:flex">
-                      <span className="h-3 w-3 rounded-full bg-white/20" />
-                      salonagent.ai
-                    </div>
-                    <div className="hidden h-10 min-w-0 items-center gap-2 rounded-t-lg bg-[#303136]/70 px-4 text-sm text-white/55 md:flex">
-                      <span className="h-3 w-3 rounded-full bg-white/20" />
-                      reddit · r/salonowners
-                    </div>
-                  </div>
-                  <div className="flex h-12 items-center gap-3 border-t border-white/5">
-                    <span className="h-4 w-4 rounded-full bg-white/15" />
-                    <div className="flex h-8 flex-1 items-center rounded-full bg-[#2b2f31] px-4 text-sm text-white/85">
-                      opengtm.app/start
-                    </div>
-                    <span className="h-4 w-4 rounded-full bg-white/15" />
-                  </div>
-                </div>
-
-                <div className="flex min-h-[680px] flex-col bg-white">
-                  <div className="flex items-center justify-between border-b px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-                        <Radar className="h-4 w-4" />
-                      </div>
-                      <span className="text-sm font-semibold">Open GTM Agents</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <span>Step 1 of 4</span>
-                      <div className="h-1 w-36 overflow-hidden rounded-full bg-muted">
-                        <div className="h-full w-1/4 rounded-full bg-primary" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid flex-1 place-items-center px-6">
-                    <div className="w-full max-w-xl">
-                      <h1 className="text-4xl leading-tight font-semibold tracking-normal md:text-5xl">
-                        Drop your landing page.
-                        <span className="block text-muted-foreground">We&apos;ll do the rest.</span>
-                      </h1>
-                      <form onSubmit={startRun} className="mt-8 flex rounded-md border bg-white p-1 shadow-sm">
-                        <Input
-                          value={url}
-                          onChange={(event) => setUrl(event.target.value)}
-                          className="h-11 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                        />
-                        <Button type="submit" className="h-11 shrink-0 px-4">
-                          Read my site
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      </form>
-                    </div>
-                  </div>
+              <div className="grid min-h-[720px] place-items-center px-6">
+                <div className="w-full max-w-xl">
+                  <h1 className="text-4xl leading-tight font-semibold tracking-normal md:text-5xl">
+                    Drop your landing page.
+                    <span className="block text-muted-foreground">We&apos;ll do the rest.</span>
+                  </h1>
+                  <form onSubmit={startRun} className="mt-8 flex rounded-md border bg-white p-1 shadow-sm">
+                    <Input
+                      value={url}
+                      onChange={(event) => setUrl(event.target.value)}
+                      className="h-11 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                    <Button type="submit" className="h-11 shrink-0 px-4">
+                      Read my site
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </form>
                 </div>
               </div>
             </motion.div>
@@ -169,11 +109,11 @@ export default function Home() {
             <AnimatePresence mode="wait">
               {!isDiscovery ? (
                 <motion.div
-                  key="onboarding"
+                  key={`onboarding-${state.onboardingStep}`}
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.35 }}
+                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                   className="grid gap-4"
                 >
                   {state.onboardingStep !== "analysis" ? (
@@ -199,7 +139,7 @@ export default function Home() {
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.35 }}
+                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                   className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]"
                 >
                   <div className="space-y-4">
