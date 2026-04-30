@@ -20,7 +20,7 @@ import { WebsitePreviewFrame } from "@/components/dry-run/website-preview-frame"
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { demoUrl } from "@/lib/dry-run/demo-data";
+import { demoUrl, schemaSections } from "@/lib/dry-run/demo-data";
 import { useDryRun } from "@/lib/dry-run/use-dry-run";
 
 export default function Home() {
@@ -266,9 +266,9 @@ function ConnectingPanel({
   visibleIds: string[];
 }) {
   const steps = [
-    { id: "connecting", label: "Navigation" },
-    { id: "trust", label: "Hero" },
-    { id: "content", label: "Building your report" },
+    { id: "connecting", label: schemaSections[0]?.label ?? "Product summary" },
+    { id: "trust", label: schemaSections[1]?.label ?? "Target customer" },
+    { id: "content", label: schemaSections[2]?.label ?? "Pain points" },
   ] as const;
   const activeIndex = Math.max(0, steps.findIndex((item) => item.id === step));
 

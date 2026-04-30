@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Check, Circle, Loader2, Lock, Search } from "lucide-react";
 import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
-import { demoUrl, websiteSections } from "@/lib/dry-run/demo-data";
+import { demoUrl, schemaSections, websiteSections } from "@/lib/dry-run/demo-data";
 import { cn } from "@/lib/utils";
 
 export function WebsitePreviewFrame({
@@ -21,6 +21,7 @@ export function WebsitePreviewFrame({
   const iframeOffset = useMemo(() => {
     return Math.min(activeIndex * 250, 1125);
   }, [activeIndex]);
+  const learningSections = schemaSections.slice(0, websiteSections.length);
 
   return (
     <div className="mx-auto grid min-h-[600px] w-full max-w-7xl items-center gap-8 lg:grid-cols-[minmax(0,1fr)_250px]">
@@ -64,7 +65,7 @@ export function WebsitePreviewFrame({
               Reading live website
             </Badge>
             <Badge variant="secondary" className="bg-white/85 shadow-sm backdrop-blur">
-              {websiteSections[activeIndex]?.label}
+              {learningSections[activeIndex]?.label}
             </Badge>
           </div>
         </div>
@@ -76,8 +77,9 @@ export function WebsitePreviewFrame({
         </p>
             <div className="absolute top-14 bottom-0 left-[11px] w-px bg-border" />
         <div className="space-y-4">
-          {websiteSections.map((section, index) => {
-            const isActive = section.id === activeSection;
+          {learningSections.map((section, index) => {
+            const matchingWebsiteSection = websiteSections[index];
+            const isActive = matchingWebsiteSection?.id === activeSection;
             const isDone = index < activeIndex;
 
             return (
@@ -111,7 +113,7 @@ export function WebsitePreviewFrame({
                       animate={{ opacity: 1, y: 0 }}
                       className="mt-1 text-xs text-muted-foreground"
                     >
-                      Synthesizing evidence from this section...
+                      {section.answer}
                     </motion.div>
                   )}
                 </div>
