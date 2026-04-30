@@ -22,9 +22,8 @@ export function OpportunityFeed({
   approvalState?: "idle" | "reviewing" | "rewriting" | "copied";
 }) {
   const visible = opportunities.filter((opportunity) => visibleIds.includes(opportunity.id));
-  const [selected, setSelected] = useState<OpportunityCard | null>(null);
-  const scriptedSelected = visible.find((opportunity) => opportunity.id === selectedId);
-  const active = scriptedSelected ?? selected ?? visible[0] ?? null;
+  const [userSelectedId, setUserSelectedId] = useState<string | null | undefined>(undefined);
+  const activeId = userSelectedId !== undefined ? userSelectedId : selectedId;
 
   return (
     <div className="space-y-3">
@@ -46,13 +45,15 @@ export function OpportunityFeed({
 
         <AnimatePresence initial={false}>
           {visible.map((opportunity) => {
-            const isActive = active?.id === opportunity.id;
+            const isActive = activeId === opportunity.id;
+            const hasExpandedCard = Boolean(activeId);
 
             return (
               <motion.div
                 key={opportunity.id}
+                layout
                 initial={{ opacity: 0, y: 18, scale: 0.98 }}
-                animate={{ opacity: isActive ? 1 : 0.72, y: 0, scale: 1 }}
+                animate={{ opacity: !hasExpandedCard || isActive ? 1 : 0.72, y: 0, scale: 1 }}
                 transition={{ duration: 0.28 }}
                 className={cn(
                   "rounded-lg border bg-card shadow-sm transition hover:opacity-100 hover:shadow-md",
@@ -61,7 +62,8 @@ export function OpportunityFeed({
               >
                 <button
                   type="button"
-                  onClick={() => setSelected(opportunity)}
+                  aria-expanded={isActive}
+                  onClick={() => setUserSelectedId((current) => (current === opportunity.id ? null : opportunity.id))}
                   className="w-full cursor-pointer p-4 text-left"
                 >
                 <div className="flex items-start justify-between gap-4">
@@ -85,13 +87,15 @@ export function OpportunityFeed({
                   </div>
                 </div>
                 </button>
-                {isActive && (
-                  <OpportunityDetail
-                    opportunity={opportunity}
-                    scriptedVariant={opportunity.id === selectedId ? rewriteVariant : undefined}
-                    approvalState={opportunity.id === selectedId ? approvalState : undefined}
-                  />
-                )}
+                <AnimatePresence initial={false}>
+                  {isActive && (
+                    <OpportunityDetail
+                      opportunity={opportunity}
+                      scriptedVariant={opportunity.id === selectedId ? rewriteVariant : undefined}
+                      approvalState={opportunity.id === selectedId ? approvalState : undefined}
+                    />
+                  )}
+                </AnimatePresence>
               </motion.div>
             );
           })}
