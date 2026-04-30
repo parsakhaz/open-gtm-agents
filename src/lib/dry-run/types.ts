@@ -41,6 +41,7 @@ export type OpportunityCard = {
 
 export type DryRunEvent =
   | { type: "status"; at: number; stage: string; message: string }
+  | { type: "onboarding_step"; at: number; step: "connecting" | "trust" | "content" | "analysis" }
   | { type: "website_focus"; at: number; sectionId: string; scrollTo: number }
   | { type: "schema_answer"; at: number; sectionId: string }
   | { type: "source_search"; at: number; source: SourceId; query: string }
@@ -49,6 +50,7 @@ export type DryRunEvent =
 
 export type VisibleState = {
   phase: "idle" | "onboarding" | "discovery" | "complete";
+  onboardingStep?: "connecting" | "trust" | "content" | "analysis";
   activeStage: string;
   activeMessage: string;
   activeWebsiteSection: string;

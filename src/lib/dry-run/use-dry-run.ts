@@ -6,6 +6,7 @@ import type { VisibleState } from "./types";
 
 const initialState: VisibleState = {
   phase: "idle",
+  onboardingStep: "connecting",
   activeStage: "Ready",
   activeMessage: "Enter a URL to start the GTM agent.",
   activeWebsiteSection: "navigation",
@@ -43,6 +44,13 @@ export function useDryRun(isRunning: boolean) {
               ...current,
               activeStage: event.stage,
               activeMessage: event.message,
+            };
+          }
+
+          if (event.type === "onboarding_step") {
+            return {
+              ...current,
+              onboardingStep: event.step,
             };
           }
 

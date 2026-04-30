@@ -6,6 +6,7 @@ import {
   Bell,
   CheckCircle2,
   Clock3,
+  FileCheck2,
   Eye,
   Globe2,
   Mail,
@@ -144,13 +145,19 @@ export default function Home() {
                   transition={{ duration: 0.35 }}
                   className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_430px]"
                 >
-                  <div className="rounded-xl border bg-[#fff8f3] p-6 shadow-sm">
-                    <WebsitePreviewFrame
-                      activeSection={state.activeWebsiteSection}
-                      scroll={state.websiteScroll}
-                    />
-                  </div>
-                  <SchemaStreamPanel visibleIds={state.schemaIds} />
+                  {state.onboardingStep !== "analysis" ? (
+                    <ConnectingPanel step={state.onboardingStep ?? "connecting"} url={url} />
+                  ) : (
+                    <>
+                      <div className="rounded-xl border bg-[#fff8f3] p-6 shadow-sm">
+                        <WebsitePreviewFrame
+                          activeSection={state.activeWebsiteSection}
+                          scroll={state.websiteScroll}
+                        />
+                      </div>
+                      <SchemaStreamPanel visibleIds={state.schemaIds} />
+                    </>
+                  )}
                 </motion.div>
               ) : (
                 <motion.div
@@ -183,6 +190,80 @@ export default function Home() {
       </div>
     </main>
   );
+}
+
+function ConnectingPanel({
+  step,
+  url,
+}: {
+  step: "connecting" | "trust" | "content" | "analysis";
+  url: string;
+}) {
+  const steps = [
+    { id: "connecting", label: "URL clarity", icon: Globe2 },
+    { id: "trust", label: "Trust signals", icon: ShieldIcon },
+    { id: "content", label: "Content", icon: FileCheck2 },
+  ] as const;
+  const activeIndex = Math.max(0, steps.findIndex((item) => item.id === step));
+
+  return (
+    <div className="col-span-full grid min-h-[650px] place-items-center rounded-xl border bg-[#fff8f3] p-8 shadow-sm">
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-2xl text-center"
+      >
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-sm">
+          <Radar className="h-8 w-8 text-[#2e8b64]" />
+        </div>
+        <h2 className="text-4xl font-semibold tracking-normal">salonagent.ai</h2>
+        <p className="mt-2 text-sm text-muted-foreground">Connecting to {url.replace(/^https?:\/\//, "")}</p>
+
+        <div className="mx-auto mt-9 grid max-w-xl grid-cols-3 gap-4">
+          {steps.map((item, index) => {
+            const Icon = item.icon;
+            const active = index === activeIndex;
+            const done = index < activeIndex;
+
+            return (
+              <motion.div
+                key={item.id}
+                animate={{
+                  opacity: active || done ? 1 : 0.35,
+                  scale: active ? 1.04 : 1,
+                }}
+                className={`rounded-xl border bg-white p-4 shadow-sm ${active ? "border-[#d66b61]" : ""}`}
+              >
+                <div
+                  className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full ${
+                    done ? "bg-primary text-primary-foreground" : active ? "bg-[#fff0eb] text-[#b24b42]" : "bg-muted"
+                  }`}
+                >
+                  {done ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                </div>
+                <div className="mt-3 text-xs font-semibold">{item.label}</div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-9 text-sm text-muted-foreground"
+        >
+          {step === "connecting" && "Opening the landing page and preparing a desktop preview."}
+          {step === "trust" && "Checking source quality, redirects, and visible business context."}
+          {step === "content" && "Loading page content before the agent starts reading sections."}
+        </motion.div>
+      </motion.div>
+    </div>
+  );
+}
+
+function ShieldIcon({ className }: { className?: string }) {
+  return <CheckCircle2 className={className} />;
 }
 
 function ValuePill({
