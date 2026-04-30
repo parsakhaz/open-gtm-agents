@@ -3,10 +3,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
-  Bell,
   CheckCircle2,
   Clock3,
-  Eye,
   Globe2,
   Loader2,
   Mail,
@@ -70,59 +68,92 @@ export default function Home() {
         </header>
 
         {!isRunning ? (
-          <section className="grid flex-1 place-items-center py-12">
+          <section className="grid flex-1 place-items-center py-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="w-full max-w-4xl"
+              className="w-full max-w-7xl"
             >
-              <div className="mb-8 text-center">
-                <Badge variant="success" className="mb-4 gap-1">
-                  <Sparkles className="h-3 w-3" />
-                  Agent-native GTM discovery
-                </Badge>
-                <h1 className="mx-auto max-w-3xl text-4xl leading-tight font-semibold tracking-normal text-balance md:text-5xl">
-                  Turn one landing page into live GTM opportunities.
-                </h1>
-                <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-muted-foreground">
-                  The dry run shows the agent reading a site, filling a GTM schema, searching channels,
-                  and streaming approval-ready comment and post opportunities.
-                </p>
+              <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-4 w-4 grid-cols-2 gap-0.5">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <span key={index} className="rounded-full bg-muted-foreground/55" />
+                    ))}
+                  </span>
+                  <span className="font-semibold">01 · URL drop</span>
+                </div>
+                <ArrowRight className="h-4 w-4 -rotate-45" />
               </div>
 
-              <Card className="overflow-hidden bg-white/90 shadow-lg">
-                <div className="grid gap-0 lg:grid-cols-[1fr_280px]">
-                  <form onSubmit={startRun} className="p-5">
-                    <label className="mb-2 block text-sm font-semibold">Product URL</label>
-                    <div className="flex gap-2">
-                      <Input value={url} onChange={(event) => setUrl(event.target.value)} />
-                      <Button type="submit" className="shrink-0">
-                        <Play className="h-4 w-4" />
-                        Run
-                      </Button>
+              <div className="overflow-hidden rounded-lg border bg-white shadow-lg">
+                <div className="bg-[#1f2024] px-4 pt-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-2 pr-3">
+                      <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+                      <span className="h-3 w-3 rounded-full bg-[#ffbd2e]" />
+                      <span className="h-3 w-3 rounded-full bg-[#28c840]" />
                     </div>
-                    <div className="mt-5 grid gap-3 md:grid-cols-3">
-                      <ValuePill icon={<Eye className="h-4 w-4" />} title="Watch the site" text="A simulated browser scrolls through the page." />
-                      <ValuePill icon={<Sparkles className="h-4 w-4" />} title="Stream context" text="Answers appear as the agent finds evidence." />
-                      <ValuePill icon={<Bell className="h-4 w-4" />} title="Approve replies" text="Cards arrive with drafts ready to review." />
+                    <div className="flex h-10 min-w-0 items-center gap-2 rounded-t-lg bg-[#303136] px-4 text-sm text-white">
+                      <span className="h-3 w-3 rounded-full bg-white/20" />
+                      Open GTM Agents
                     </div>
-                  </form>
-                  <div className="border-t bg-[#f7efe9] p-5 lg:border-t-0 lg:border-l">
-                    <div className="text-xs font-semibold text-muted-foreground">Demo script</div>
-                    <div className="mt-3 space-y-3">
-                      {["Analyze website", "Build GTM profile", "Search source graph", "Draft opportunities"].map((item, index) => (
-                        <div key={item} className="flex items-center gap-3 text-sm">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold shadow-sm">
-                            {index + 1}
-                          </div>
-                          {item}
-                        </div>
-                      ))}
+                    <div className="hidden h-10 min-w-0 items-center gap-2 rounded-t-lg bg-[#303136]/70 px-4 text-sm text-white/55 md:flex">
+                      <span className="h-3 w-3 rounded-full bg-white/20" />
+                      salonagent.ai
+                    </div>
+                    <div className="hidden h-10 min-w-0 items-center gap-2 rounded-t-lg bg-[#303136]/70 px-4 text-sm text-white/55 md:flex">
+                      <span className="h-3 w-3 rounded-full bg-white/20" />
+                      reddit · r/salonowners
+                    </div>
+                  </div>
+                  <div className="flex h-12 items-center gap-3 border-t border-white/5">
+                    <span className="h-4 w-4 rounded-full bg-white/15" />
+                    <div className="flex h-8 flex-1 items-center rounded-full bg-[#2b2f31] px-4 text-sm text-white/85">
+                      opengtm.app/start
+                    </div>
+                    <span className="h-4 w-4 rounded-full bg-white/15" />
+                  </div>
+                </div>
+
+                <div className="flex min-h-[680px] flex-col bg-white">
+                  <div className="flex items-center justify-between border-b px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                        <Radar className="h-4 w-4" />
+                      </div>
+                      <span className="text-sm font-semibold">Open GTM Agents</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <span>Step 1 of 4</span>
+                      <div className="h-1 w-36 overflow-hidden rounded-full bg-muted">
+                        <div className="h-full w-1/4 rounded-full bg-primary" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid flex-1 place-items-center px-6">
+                    <div className="w-full max-w-xl">
+                      <h1 className="text-4xl leading-tight font-semibold tracking-normal md:text-5xl">
+                        Drop your landing page.
+                        <span className="block text-muted-foreground">We&apos;ll do the rest.</span>
+                      </h1>
+                      <form onSubmit={startRun} className="mt-8 flex rounded-md border bg-white p-1 shadow-sm">
+                        <Input
+                          value={url}
+                          onChange={(event) => setUrl(event.target.value)}
+                          className="h-11 border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        />
+                        <Button type="submit" className="h-11 shrink-0 px-4">
+                          Read my site
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </form>
                     </div>
                   </div>
                 </div>
-              </Card>
+              </div>
             </motion.div>
           </section>
         ) : (
@@ -299,26 +330,6 @@ function ConnectingPanel({
           <SchemaStreamPanel visibleIds={visibleIds} compact />
         </div>
       </motion.div>
-    </div>
-  );
-}
-
-function ValuePill({
-  icon,
-  title,
-  text,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  text: string;
-}) {
-  return (
-    <div className="rounded-lg border bg-background p-3">
-      <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-        {icon}
-        {title}
-      </div>
-      <p className="text-xs leading-5 text-muted-foreground">{text}</p>
     </div>
   );
 }
