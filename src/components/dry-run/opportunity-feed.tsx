@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, Copy, FileText, MessageSquare, ShieldAlert, Sparkles } from "lucide-react";
+import { CheckCircle2, Copy, FileText, MessageSquare, ShieldAlert, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -167,11 +167,13 @@ function OpportunityDetail({
   approvalState?: "idle" | "reviewing" | "rewriting" | "copied";
 }) {
   const [variant, setVariant] = useState<keyof OpportunityCard["variants"] | "default">("default");
+  const [copiedDraft, setCopiedDraft] = useState("");
   const draft = useMemo(() => {
     if (!opportunity) return "";
     const activeVariant = scriptedVariant ?? variant;
     return activeVariant === "default" ? opportunity.draft : opportunity.variants[activeVariant];
   }, [opportunity, scriptedVariant, variant]);
+  const copied = copiedDraft === draft || approvalState === "copied";
 
   if (!opportunity) {
     return (
@@ -222,13 +224,15 @@ function OpportunityDetail({
           ))}
         </div>
         <div className="mt-3 grid gap-2 md:grid-cols-2">
-          <Button>
-            <Copy className="h-4 w-4" />
-            {approvalState === "copied" ? "Copied" : "Copy"}
-          </Button>
-          <Button variant="outline">
-            <ArrowUpRight className="h-4 w-4" />
-            Open
+          <Button
+            className="md:col-span-2"
+            onClick={async () => {
+              await navigator.clipboard?.writeText(draft);
+              setCopiedDraft(draft);
+            }}
+          >
+            {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? "Copied" : "Copy draft"}
           </Button>
         </div>
       </div>

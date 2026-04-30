@@ -294,6 +294,8 @@ export const dryRunEvents: DryRunEvent[] = [
   { type: "schema_answer", at: 12900, sectionId: "tone" },
   { type: "website_focus", at: 14900, sectionId: "footer", scrollTo: 86 },
   { type: "schema_answer", at: 15500, sectionId: "avoid" },
+  { type: "status", at: 16600, stage: "GTM profile ready", message: "The site has been turned into search angles, customer context, and safe reply guidance." },
+  { type: "gate", at: 17600, gate: "profile" },
   { type: "phase", at: 17900, phase: "discovery" },
   { type: "status", at: 18100, stage: "Looking for conversations", message: "Searching for people already talking about this problem." },
   { type: "source_search", at: 18900, source: "reddit", query: "salon missed calls receptionist alternative" },
@@ -307,5 +309,6 @@ export const dryRunEvents: DryRunEvent[] = [
   { type: "source_search", at: 31200, source: "web", query: "salon answering service booking follow up" },
   { type: "opportunity", at: 32600, cardId: "competitive-answering-service" },
   { type: "status", at: 34000, stage: "Ready for review", message: "Collecting the best finds so you can approve what to send." },
+  { type: "gate", at: 34800, gate: "research" },
   { type: "phase", at: 35600, phase: "complete" },
 ];

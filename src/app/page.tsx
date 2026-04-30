@@ -7,7 +7,6 @@ import {
   Clock3,
   Loader2,
   Mail,
-  Play,
   Radar,
   RefreshCcw,
   Sparkles,
@@ -28,7 +27,7 @@ import { useDryRun } from "@/lib/dry-run/use-dry-run";
 export default function Home() {
   const [url, setUrl] = useState(demoUrl);
   const [isRunning, setIsRunning] = useState(false);
-  const { state, progress } = useDryRun(isRunning);
+  const { state, progress, gate, proceed } = useDryRun(isRunning);
 
   function startRun(event?: FormEvent) {
     event?.preventDefault();
@@ -41,7 +40,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#fbf2ee] text-foreground">
       <div className="mx-auto flex min-h-screen w-full max-w-[1480px] flex-col px-5 py-5">
-        <header className="flex items-center justify-between rounded-lg border bg-white/75 px-4 py-3 shadow-sm backdrop-blur">
+        <header className="flex items-center justify-between gap-4 rounded-lg border bg-white/75 px-4 py-3 shadow-sm backdrop-blur">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[#1f2b24] text-primary">
               <Radar className="h-5 w-5" />
@@ -50,6 +49,14 @@ export default function Home() {
               <div className="text-sm font-bold tracking-normal">Open GTM Agents</div>
             </div>
           </div>
+          {isRunning && (
+            <RunControls
+              gate={gate}
+              progress={progress}
+              onProceed={proceed}
+              onRestart={() => startRun()}
+            />
+          )}
         </header>
 
         {!isRunning ? (
@@ -83,11 +90,6 @@ export default function Home() {
           </section>
         ) : (
           <section className="flex flex-1 flex-col gap-4 py-4">
-            <RunTopBar
-              progress={progress}
-              onRestart={() => startRun()}
-            />
-
             {!isDiscovery ? (
               <div className="grid gap-4">
                 <div className={state.onboardingStep === "analysis" ? "hidden" : "block"}>
@@ -361,31 +363,41 @@ function ConnectingPanel({
   );
 }
 
-function RunTopBar({
+function RunControls({
+  gate,
   progress,
+  onProceed,
   onRestart,
 }: {
+  gate: "profile" | "research" | null;
   progress: number;
+  onProceed: () => void;
   onRestart: () => void;
 }) {
+  const proceedLabel = gate === "profile" ? "Proceed to research" : "Review opportunities";
+
   return (
-    <div className="rounded-lg border bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
-      <div className="flex items-center justify-end gap-3">
-        <div className="flex w-full max-w-sm items-center gap-3">
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-            <motion.div
-              className="h-full rounded-full bg-primary"
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.25 }}
-            />
-          </div>
-          <div className="w-10 text-right text-xs font-semibold">{progress}%</div>
+    <div className="flex min-w-0 flex-1 items-center justify-end gap-3">
+      <div className="hidden w-full max-w-xs items-center gap-3 sm:flex">
+        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+          <motion.div
+            className="h-full rounded-full bg-primary"
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.25 }}
+          />
         </div>
-        <Button variant="outline" size="sm" onClick={onRestart}>
-          <RefreshCcw className="h-3.5 w-3.5" />
-          Replay
-        </Button>
+        <div className="w-10 text-right text-xs font-semibold">{progress}%</div>
       </div>
+      {gate && (
+        <Button size="sm" onClick={onProceed}>
+          {proceedLabel}
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Button>
+      )}
+      <Button variant="outline" size="sm" onClick={onRestart}>
+        <RefreshCcw className="h-3.5 w-3.5" />
+        Replay
+      </Button>
     </div>
   );
 }

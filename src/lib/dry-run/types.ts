@@ -46,6 +46,7 @@ export type DryRunEvent =
   | { type: "schema_answer"; at: number; sectionId: string }
   | { type: "source_search"; at: number; source: SourceId; query: string }
   | { type: "opportunity"; at: number; cardId: string }
+  | { type: "gate"; at: number; gate: "profile" | "research" }
   | { type: "phase"; at: number; phase: "onboarding" | "discovery" | "complete" };
 
 export type VisibleState = {
