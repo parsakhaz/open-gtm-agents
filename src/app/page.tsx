@@ -91,59 +91,58 @@ export default function Home() {
               onRestart={() => startRun()}
             />
 
-            <AnimatePresence mode="wait">
-              {!isDiscovery ? (
-                <motion.div
-                  key={`onboarding-${state.onboardingStep}`}
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                  className="grid gap-4"
-                >
-                  {state.onboardingStep !== "analysis" ? (
-                    <ConnectingPanel
-                      step={state.onboardingStep ?? "connecting"}
-                      visibleIds={state.schemaIds}
-                    />
-                  ) : (
-                    <>
-                      <div className="rounded-xl border bg-[#fff8f3] p-6 shadow-sm">
-                        <WebsitePreviewFrame
-                          activeSection={state.activeWebsiteSection}
-                          scroll={state.websiteScroll}
-                        />
-                      </div>
-                      <SchemaStreamPanel visibleIds={state.schemaIds} compact />
-                    </>
-                  )}
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="discovery"
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-                  className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]"
-                >
-                  <div className="space-y-4">
-                    <ActivityTimeline
-                      searches={state.searches}
-                      activeStage={state.activeStage}
-                      activeMessage={state.activeMessage}
-                    />
-                    <MonitoringSummary complete={state.phase === "complete"} />
-                  </div>
-                  <OpportunityFeed
-                    visibleIds={state.opportunityIds}
-                    selectedId={state.selectedOpportunityId}
-                    rewriteVariant={state.rewriteVariant}
-                    approvalState={state.approvalState}
+            {!isDiscovery ? (
+              <div className="grid gap-4">
+                <div className={state.onboardingStep === "analysis" ? "hidden" : "block"}>
+                  <ConnectingPanel
+                    step={state.onboardingStep ?? "connecting"}
+                    visibleIds={state.schemaIds}
                   />
+                </div>
+                <motion.div
+                  initial={false}
+                  animate={{
+                    opacity: state.onboardingStep === "analysis" ? 1 : 0,
+                    y: state.onboardingStep === "analysis" ? 0 : 12,
+                    height: state.onboardingStep === "analysis" ? "auto" : 0,
+                  }}
+                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="rounded-xl border bg-[#fff8f3] p-6 shadow-sm">
+                    <WebsitePreviewFrame
+                      activeSection={state.activeWebsiteSection}
+                      scroll={state.websiteScroll}
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <SchemaStreamPanel visibleIds={state.schemaIds} compact />
+                  </div>
                 </motion.div>
-              )}
-            </AnimatePresence>
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]"
+              >
+                <div className="space-y-4">
+                  <ActivityTimeline
+                    searches={state.searches}
+                    activeStage={state.activeStage}
+                    activeMessage={state.activeMessage}
+                  />
+                  <MonitoringSummary complete={state.phase === "complete"} />
+                </div>
+                <OpportunityFeed
+                  visibleIds={state.opportunityIds}
+                  selectedId={state.selectedOpportunityId}
+                  rewriteVariant={state.rewriteVariant}
+                  approvalState={state.approvalState}
+                />
+              </motion.div>
+            )}
           </section>
         )}
       </div>

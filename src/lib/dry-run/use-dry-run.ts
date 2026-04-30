@@ -129,7 +129,7 @@ export function useDryRun(isRunning: boolean) {
           activeStage: "Finding the next opportunity",
           activeMessage: "More relevant conversations are coming in while you review.",
         }));
-      }, 23800),
+      }, 25400),
     ];
 
     return () => [...timers, ...interactionTimers].forEach(window.clearTimeout);
@@ -138,7 +138,7 @@ export function useDryRun(isRunning: boolean) {
   const elapsed = useElapsed(startedAt);
   const progress = useMemo(() => {
     if (!isRunning) return 0;
-    return Math.min(100, Math.round((elapsed / 30000) * 100));
+    return Math.min(100, Math.round((elapsed / 35600) * 100));
   }, [elapsed, isRunning]);
 
   return { state, progress };
