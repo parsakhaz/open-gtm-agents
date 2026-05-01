@@ -54,8 +54,8 @@ const gtmPlanSchema = {
     },
     searches: {
       type: "array",
-      minItems: 3,
-      maxItems: 8,
+      minItems: 10,
+      maxItems: 15,
       items: {
         type: "object",
         additionalProperties: false,
@@ -153,11 +153,13 @@ export async function generateLiveGtmPlan(input: {
     systemPrompt: GTM_RESEARCH_ORCHESTRATOR_SYSTEM_PROMPT,
     userPrompt: `Build a GTM profile and broad external research missions for this website.
 
-Act like a senior GTM researcher. Each search query should be a concise external research mission, not a brittle exact keyword query. Give the web researcher room to explore buyer pain, competitors, alternatives, community discussions, and operational intent.
+Act like a senior GTM researcher. Create 10 to 15 concise external research missions, not one broad blended query. Give the web researcher room to explore buyer pain, competitors, alternatives, community discussions, and operational intent.
 
 Freshness window: prioritize opportunities from the last ${input.scanDays ?? 14} days. Search missions should make sense for finding fresh posts that are still natural to reply to.
 
 Prioritize real people and comment opportunities from Reddit, Hacker News, X/Twitter, LinkedIn, GitHub discussions/issues, forums, Q&A sites, and review/community threads. Avoid vendor blogs, marketing pages, homepages, pricing pages, SEO articles, and product pages unless the mission is explicitly competitive comparison. Do not search the submitted website itself. Do not include the product brand name unless the mission is explicitly competitive/review research. Do not use site: queries for the submitted domain.
+
+Cover multiple platforms. Include several missions for high-signal community surfaces, especially Reddit, Hacker News, GitHub, X/Twitter, and broad web/forum search. Each mission will be executed as a separate Exa search, so make each one specific enough to retrieve a different slice of the market.
 
 Website URL: ${input.websiteUrl}
 

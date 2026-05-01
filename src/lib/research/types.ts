@@ -38,6 +38,7 @@ export type SourceReference = {
   publishedAt?: string;
   qualityScore?: number;
   qualityReasons?: string[];
+  matchedQuery?: string;
 };
 
 export type OpportunityEvidence = {

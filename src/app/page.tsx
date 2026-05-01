@@ -733,14 +733,21 @@ function ResearchBoard({
               transition={{ delay: index * 0.04, duration: 0.28 }}
               className="min-h-[220px] rounded-lg border bg-card p-4 shadow-sm transition hover:shadow-md"
             >
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
-                  <SourceIcon source={source.source} className="h-5 w-5" />
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-muted">
+                    <SourceIcon source={source.source} className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold">{sourceLabel(source.source)}</div>
+                    <div className="truncate text-xs text-muted-foreground">{hostnameForDisplay(source.url)}</div>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold">{sourceLabel(source.source)}</div>
-                  <div className="truncate text-xs text-muted-foreground">{hostnameForDisplay(source.url)}</div>
-                </div>
+                {source.qualityScore != null && (
+                  <Badge variant="secondary" className="shrink-0">
+                    {source.qualityScore}
+                  </Badge>
+                )}
               </div>
               <h3 className="line-clamp-2 text-base font-semibold tracking-normal">{source.title}</h3>
               <p className="mt-3 line-clamp-5 text-sm leading-6 text-muted-foreground">

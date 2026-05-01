@@ -329,7 +329,7 @@ Implemented:
 - Real Mode uses Exa contents/search plus structured OpenAI calls to stream live profile fields, source results, search angles, and opportunity cards.
 - Real Mode reuses the Dry Run visual shell but parameterizes the preview by submitted URL/site name and shows neutral placeholders until live profile fields arrive.
 - The live profile event mapper paces field reveals through the Dry Run website-section sequence so the iframe scroll and stepper advance progressively.
-- Real Mode accepts a scan window from the start form, defaults it to 14 days, and sends it to Exa search as `startPublishedDate`. Platform-specific research missions first use matching domain filters, then fall back to a broader same-recency pass when too few quality candidates are found.
+- Real Mode accepts a scan window from the start form, defaults it to 14 days, and sends it to Exa search as `startPublishedDate`. The planner creates 10-15 platform-aware research missions; each mission is executed as an independent Exa search, then results are deduped, scored, and ranked best-to-worst. Platform-specific research missions first use matching domain filters, then fall back to a broader same-recency pass when too few quality candidates are found.
 - The live research client keeps reading streamed events while profile/research gates are held, then reveals buffered events progressively after the user proceeds. Development logs use the `real-research-ui` prefix for event queued/revealed and gate timing.
 - Provider and agent calls retry up to three immediate attempts and log redacted provider timing/details.
 - OpenAI-backed web researcher smoke test saved at [research/2026-04-30-web-nextjs-turbopack.md](research/2026-04-30-web-nextjs-turbopack.md).
