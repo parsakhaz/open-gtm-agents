@@ -338,6 +338,9 @@ Current state:
 - `/api/research/run` streams NDJSON research events for both seeded Dry Run support and live Real Mode.
 - Real Mode uses Exa for website/source content and structured OpenAI calls for GTM profile/search generation and opportunity extraction.
 - Real Mode keeps the Dry Run's choreographed feel but replaces demo-specific content with the submitted site: hostname/favicons, iframe URL, neutral loading copy, and live schema text once it streams in.
+- Real Mode now separates live event receipt from UI reveal timing. The client keeps reading the NDJSON stream while gates are active, buffers incoming events, and reveals them at a dry-run-like cadence after the user proceeds.
+- Real Mode enters the browser preview quickly and uses honest pending stepper motion while Exa/OpenAI provider calls are still running. Final GTM profile, source, and opportunity content still comes from live provider output.
+- Real Mode logs client receive/reveal/gate timing in development with the `real-research-ui` prefix so provider latency can be distinguished from UI pacing or a user-held gate.
 - Real Mode should not show SalonAgent-specific quotes, product summaries, or opportunity copy unless the submitted URL is actually SalonAgent.
 - Live opportunities are adapted into the same review cards as the dry run, so browser-use actions continue to receive `url`, `draft`, and `opportunityId`.
 - The OpenAI-backed web researcher path has been smoke-tested with a cited research artifact at [research/2026-04-30-web-nextjs-turbopack.md](research/2026-04-30-web-nextjs-turbopack.md).

@@ -39,6 +39,34 @@ const liveWebsiteSections = [
   "footer",
 ];
 
+type QueuedResearchEvent = {
+  event: ResearchRunEvent;
+  receivedAt: number;
+};
+
+type PendingStage =
+  | "connecting"
+  | "reading"
+  | "profile"
+  | "research"
+  | "opportunities"
+  | "done"
+  | "error";
+
+const pendingMessages: Record<Exclude<PendingStage, "done" | "error">, string> = {
+  connecting: "Starting live research.",
+  reading: "Opening the page and preparing content for analysis.",
+  profile: "Reading the page and building GTM context.",
+  research: "Searching for source-backed conversations.",
+  opportunities: "Ranking the best live opportunities.",
+};
+
+const sourceRevealDelayMs = 420;
+const searchRevealDelayMs = 260;
+const profileRevealDelayMs = 850;
+const opportunityRevealDelayMs = 520;
+const pendingTickMs = 1350;
+
 export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) {
   const [state, setState] = useState<VisibleState>(initialState);
   const [progress, setProgress] = useState(0);
@@ -62,6 +90,13 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
 
     const abortController = new AbortController();
     let cancelled = false;
+    let streamClosed = false;
+    let activeRunId: string | undefined;
+    let pendingStage: PendingStage = "connecting";
+    let pendingIndex = 0;
+    let lastPendingTick = 0;
+    const queue: QueuedResearchEvent[] = [];
+    let wakePresenter: (() => void) | null = null;
 
     async function run() {
       setState({
@@ -81,6 +116,8 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
       proceedRef.current = null;
 
       try {
+        void presentEvents();
+
         const request: ResearchRunRequest = {
           websiteUrl: url,
           mode: "live",
@@ -114,35 +151,135 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
 
           for (const line of lines) {
             if (!line.trim()) continue;
-            await applyEvent(JSON.parse(line) as ResearchRunEvent);
+            enqueueEvent(JSON.parse(line) as ResearchRunEvent);
           }
         }
 
         if (buffer.trim()) {
-          await applyEvent(JSON.parse(buffer) as ResearchRunEvent);
+          enqueueEvent(JSON.parse(buffer) as ResearchRunEvent);
         }
+        streamClosed = true;
+        wakePresenter?.();
       } catch (caught) {
         if (abortController.signal.aborted) return;
         const message =
           caught instanceof Error ? caught.message : "Live research failed.";
+        pendingStage = "error";
         setError(message);
         setState((current) => ({
           ...current,
           activeStage: "Research failed",
           activeMessage: message,
         }));
+        clientLog("stream failed", { message });
+        streamClosed = true;
+        wakePresenter?.();
       }
     }
 
-    async function applyEvent(event: ResearchRunEvent) {
+    function enqueueEvent(event: ResearchRunEvent) {
+      activeRunId = event.runId ?? activeRunId;
+      queue.push({ event, receivedAt: Date.now() });
+      clientLog("event queued", {
+        runId: activeRunId,
+        type: event.type,
+        queueLength: queue.length,
+      });
+      wakePresenter?.();
+    }
+
+    async function presentEvents() {
+      while (!cancelled) {
+        const queued = await nextQueuedEvent();
+        if (cancelled) return;
+
+        if (!queued) {
+          if (streamClosed) return;
+          tickPendingPresentation();
+          continue;
+        }
+
+        await revealEvent(queued.event, queued.receivedAt);
+      }
+    }
+
+    async function nextQueuedEvent() {
+      if (queue.length > 0) {
+        return queue.shift() ?? null;
+      }
+
+      if (streamClosed) {
+        return null;
+      }
+
+      await new Promise<void>((resolve) => {
+        const wake = () => {
+          window.clearTimeout(timeout);
+          if (wakePresenter === wake) {
+            wakePresenter = null;
+          }
+          resolve();
+        };
+        const timeout = window.setTimeout(() => {
+          if (wakePresenter === wake) {
+            wakePresenter = null;
+          }
+          resolve();
+        }, pendingTickMs);
+
+        wakePresenter = wake;
+      });
+
+      return queue.shift() ?? null;
+    }
+
+    async function revealEvent(event: ResearchRunEvent, receivedAt: number) {
+      clientLog("event reveal", {
+        runId: activeRunId,
+        type: event.type,
+        queueLength: queue.length,
+        latencyMs: Date.now() - receivedAt,
+      });
+
       if (event.type === "status") {
-        if (event.stage === "Inferring GTM profile") {
+        if (event.stage === "Reading website") {
+          pendingStage = "reading";
           setState((current) => ({
             ...current,
             phase: "onboarding",
             onboardingStep: "analysis",
             activeWebsiteSection: "navigation",
-            websiteScroll: 8,
+            websiteScroll: 0,
+            activeStage: event.stage,
+            activeMessage: event.message,
+          }));
+          setProgress((current) => Math.max(current, 10));
+          return;
+        }
+
+        if (event.stage === "Website content ready") {
+          pendingStage = "profile";
+          setState((current) => ({
+            ...current,
+            phase: "onboarding",
+            onboardingStep: "analysis",
+            activeWebsiteSection: liveWebsiteSectionFor(Math.max(current.schemaIds.length, 1)),
+            websiteScroll: liveWebsiteScrollFor(Math.max(current.schemaIds.length, 1)),
+            activeStage: event.stage,
+            activeMessage: event.message,
+          }));
+          setProgress((current) => Math.max(current, 16));
+          return;
+        }
+
+        if (event.stage === "Inferring GTM profile" || event.stage === "GTM model running") {
+          pendingStage = "profile";
+          setState((current) => ({
+            ...current,
+            phase: "onboarding",
+            onboardingStep: "analysis",
+            activeWebsiteSection: liveWebsiteSectionFor(Math.max(current.schemaIds.length, 1)),
+            websiteScroll: liveWebsiteScrollFor(Math.max(current.schemaIds.length, 1)),
             activeStage: event.stage,
             activeMessage: event.message,
           }));
@@ -150,18 +287,62 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
           return;
         }
 
+        if (event.stage === "GTM profile ready") {
+          pendingStage = "profile";
+          setState((current) => ({
+            ...current,
+            phase: "onboarding",
+            onboardingStep: "analysis",
+            activeStage: event.stage,
+            activeMessage: event.message,
+          }));
+          setProgress((current) => Math.max(current, 30));
+          return;
+        }
+
         if (event.stage === "Generating search angles") {
+          pendingStage = "profile";
           setState((current) => ({
             ...current,
             onboardingStep: "analysis",
+            activeWebsiteSection: liveWebsiteSectionFor(Math.max(current.schemaIds.length - 1, 0)),
+            websiteScroll: liveWebsiteScrollFor(Math.max(current.schemaIds.length - 1, 0)),
             activeStage: "Website analysis complete",
             activeMessage: "Review the live GTM profile, then approve it to start source research.",
           }));
           setProgress((current) => Math.max(current, 34));
           await waitForProceed("profile");
+          return;
+        }
+
+        if (event.stage === "Researching conversations" || event.stage === "Source search running") {
+          pendingStage = "research";
+          revealSourcesRef.current = true;
+          setState((current) => ({
+            ...current,
+            phase: "discovery",
+            activeStage: event.stage,
+            activeMessage: event.message,
+          }));
+          setProgress((current) => Math.max(current, 48));
+          return;
+        }
+
+        if (event.stage === "Source search complete") {
+          pendingStage = "research";
+          revealSourcesRef.current = true;
+          setState((current) => ({
+            ...current,
+            phase: "discovery",
+            activeStage: "Research ready",
+            activeMessage: event.message,
+          }));
+          setProgress((current) => Math.max(current, 58));
+          return;
         }
 
         if (event.stage === "Ranking opportunities") {
+          pendingStage = "opportunities";
           setState((current) => ({
             ...current,
             phase: "discovery",
@@ -170,6 +351,19 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
           }));
           setProgress((current) => Math.max(current, 64));
           await waitForProceed("research");
+          return;
+        }
+
+        if (event.stage === "Opportunity model running" || event.stage === "Drafting responses") {
+          pendingStage = "opportunities";
+          setState((current) => ({
+            ...current,
+            phase: current.phase,
+            activeStage: event.stage,
+            activeMessage: event.message,
+          }));
+          setProgress((current) => Math.max(current, event.stage === "Drafting responses" ? 72 : 68));
+          return;
         }
 
         setState((current) => ({
@@ -184,9 +378,6 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
           activeMessage: event.message,
         }));
         setProgress((current) => Math.max(current, 12));
-        if (event.stage === "Researching conversations") {
-          revealSourcesRef.current = true;
-        }
         return;
       }
 
@@ -201,20 +392,20 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
           ...current,
           phase: "onboarding",
           onboardingStep: "analysis",
-          activeWebsiteSection: liveWebsiteSectionFor(current.schemaIds.length),
-          websiteScroll: liveWebsiteScrollFor(current.schemaIds.length),
+          activeWebsiteSection: liveWebsiteSectionFor(nextSchemaIndex(current.schemaIds, section.id)),
+          websiteScroll: liveWebsiteScrollFor(nextSchemaIndex(current.schemaIds, section.id)),
           schemaIds: current.schemaIds.includes(section.id)
             ? current.schemaIds
             : [...current.schemaIds, section.id],
           activeStage: "Inferring GTM profile",
         }));
         setProgress((current) => Math.max(current, 28));
-        await sleep(750);
+        await sleep(profileRevealDelayMs);
         return;
       }
 
       if (event.type === "source_search") {
-        await sleep(220);
+        await sleep(searchRevealDelayMs);
         setState((current) => ({
           ...current,
           phase: "discovery",
@@ -236,7 +427,7 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
           : [...sourcesRef.current, event.source];
         sourcesRef.current = next;
         if (revealSourcesRef.current) {
-          await sleep(300);
+          await sleep(sourceRevealDelayMs);
           setSourceResults((current) =>
             current.some((item) => item.url === event.source.url)
               ? current
@@ -247,7 +438,7 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
       }
 
       if (event.type === "opportunity") {
-        await sleep(450);
+        await sleep(opportunityRevealDelayMs);
         const card = researchOpportunityToCard(event.opportunity, sourcesRef.current);
         setOpportunities((current) =>
           current.some((item) => item.id === card.id)
@@ -270,6 +461,7 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
       }
 
       if (event.type === "done") {
+        pendingStage = "done";
         setState((current) => ({
           ...current,
           phase: "complete",
@@ -281,6 +473,7 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
       }
 
       if (event.type === "error") {
+        pendingStage = "error";
         setError(event.message);
         setState((current) => ({
           ...current,
@@ -290,11 +483,91 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
       }
     }
 
+    function tickPendingPresentation() {
+      if (pendingStage === "done" || pendingStage === "error") return;
+      const now = Date.now();
+      if (now - lastPendingTick < pendingTickMs - 50) return;
+      lastPendingTick = now;
+
+      if (pendingStage === "connecting") {
+        setState((current) => ({
+          ...current,
+          phase: "onboarding",
+          onboardingStep: "connecting",
+          activeStage: "Connecting",
+          activeMessage: pendingMessages.connecting,
+        }));
+        return;
+      }
+
+      if (pendingStage === "reading") {
+        setState((current) => ({
+          ...current,
+          phase: "onboarding",
+          onboardingStep: "analysis",
+          activeWebsiteSection: "navigation",
+          websiteScroll: 0,
+          activeStage: "Reading website",
+          activeMessage: pendingMessages.reading,
+        }));
+        return;
+      }
+
+      if (pendingStage === "profile") {
+        pendingIndex = Math.min(pendingIndex + 1, liveWebsiteSections.length - 1);
+        setState((current) => {
+          const visibleCount = current.schemaIds.length;
+          const nextIndex = Math.max(visibleCount, pendingIndex);
+          return {
+            ...current,
+            phase: "onboarding",
+            onboardingStep: "analysis",
+            activeWebsiteSection: liveWebsiteSectionFor(nextIndex),
+            websiteScroll: liveWebsiteScrollFor(nextIndex),
+            activeStage: "Inferring GTM profile",
+            activeMessage: pendingMessages.profile,
+          };
+        });
+        setProgress((current) => Math.max(current, Math.min(30, 18 + pendingIndex * 2)));
+        clientLog("pending profile tick", { runId: activeRunId, pendingIndex, queueLength: queue.length });
+        return;
+      }
+
+      if (pendingStage === "research") {
+        setState((current) => ({
+          ...current,
+          phase: "discovery",
+          activeStage: "Looking for conversations",
+          activeMessage: pendingMessages.research,
+        }));
+        setProgress((current) => Math.max(current, 52));
+        return;
+      }
+
+      if (pendingStage === "opportunities") {
+        setState((current) => ({
+          ...current,
+          phase: current.opportunityIds.length > 0 ? "complete" : "discovery",
+          activeStage: "Ranking opportunities",
+          activeMessage: pendingMessages.opportunities,
+        }));
+        setProgress((current) => Math.max(current, 68));
+      }
+    }
+
     async function waitForProceed(nextGate: "profile" | "research") {
       if (cancelled) return;
+      const startedAt = Date.now();
       setGate(nextGate);
+      clientLog("gate entered", { runId: activeRunId, gate: nextGate, queueLength: queue.length });
       await new Promise<void>((resolve) => {
         proceedRef.current = resolve;
+      });
+      clientLog("gate exited", {
+        runId: activeRunId,
+        gate: nextGate,
+        queueLength: queue.length,
+        waitedMs: Date.now() - startedAt,
       });
     }
 
@@ -305,6 +578,7 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
       abortController.abort();
       proceedRef.current?.();
       proceedRef.current = null;
+      wakePresenter?.();
     };
   }, [isRunning, url]);
 
@@ -334,4 +608,22 @@ function liveWebsiteSectionFor(index: number) {
 function liveWebsiteScrollFor(index: number) {
   const scrollStops = [0, 8, 28, 48, 68, 86];
   return scrollStops[Math.min(index, scrollStops.length - 1)];
+}
+
+function nextSchemaIndex(schemaIds: string[], sectionId: string) {
+  return schemaIds.includes(sectionId) ? schemaIds.indexOf(sectionId) : schemaIds.length;
+}
+
+function clientLog(message: string, data?: Record<string, unknown>) {
+  if (process.env.NODE_ENV === "production") return;
+  const suffix = data ? ` ${safeJson(data)}` : "";
+  console.log(`[real-research-ui] ${message}${suffix}`);
+}
+
+function safeJson(data: Record<string, unknown>) {
+  try {
+    return JSON.stringify(data);
+  } catch {
+    return "";
+  }
 }

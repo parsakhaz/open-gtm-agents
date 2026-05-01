@@ -123,6 +123,13 @@ type RunEvent =
 
 For the first version, this can be a streaming response from a single API route. If needed, it can later move to a `run_id` plus Server-Sent Events or polling model.
 
+The foreground Real Mode path uses two layers:
+
+1. Provider execution emits NDJSON events from `/api/research/run`.
+2. The client presentation layer receives those events continuously, buffers them when the user is at a review gate, and reveals them through a dry-run-like cadence.
+
+This distinction matters because the GTM profile and opportunity extraction calls currently return structured JSON batches, not token-level per-card output. Real Mode should still feel alive during those waits by showing the live preview, pending stepper motion, granular provider statuses, and clear debug logs, while keeping final profile/source/opportunity content tied to actual provider output.
+
 ## Vercel Function Duration
 
 Research may take up to five minutes.
@@ -322,6 +329,7 @@ Implemented:
 - Real Mode uses Exa contents/search plus structured OpenAI calls to stream live profile fields, source results, search angles, and opportunity cards.
 - Real Mode reuses the Dry Run visual shell but parameterizes the preview by submitted URL/site name and shows neutral placeholders until live profile fields arrive.
 - The live profile event mapper paces field reveals through the Dry Run website-section sequence so the iframe scroll and stepper advance progressively.
+- The live research client keeps reading streamed events while profile/research gates are held, then reveals buffered events progressively after the user proceeds. Development logs use the `real-research-ui` prefix for event queued/revealed and gate timing.
 - Provider and agent calls retry up to three immediate attempts and log redacted provider timing/details.
 - OpenAI-backed web researcher smoke test saved at [research/2026-04-30-web-nextjs-turbopack.md](research/2026-04-30-web-nextjs-turbopack.md).
 - Local browser companion relay, generic browser mission service, and dry-run Post now integration.

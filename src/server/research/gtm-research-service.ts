@@ -164,13 +164,16 @@ export class GTMResearchService {
       throw new Error("Could not fetch website content for live research.");
     }
     this.emitSources(runId, websiteSources, emit);
+    emit(status(runId, "Website content ready", `Fetched ${websiteSources.length} live page source for GTM analysis.`));
 
     emit(status(runId, "Inferring GTM profile", "Generating a live GTM profile and search plan from the website."));
+    emit(status(runId, "GTM model running", "Building product context, target customer, pains, alternatives, and search angles."));
     const plan = await generateLiveGtmPlan({
       websiteUrl: input.websiteUrl,
       websiteSources,
       model,
     });
+    emit(status(runId, "GTM profile ready", `Generated ${plan.profileFields.length} live profile fields and ${plan.searches.length} search missions.`));
 
     for (const field of plan.profileFields) {
       this.emitProfileField(runId, field, emit);
@@ -182,10 +185,13 @@ export class GTMResearchService {
     }
 
     emit(status(runId, "Researching conversations", "Searching and fetching source content for the live opportunity queue."));
+    emit(status(runId, "Source search running", "Looking for real discussions, threads, issues, and community posts."));
     const sources = await this.fetchLiveSources(plan.searches, input.websiteUrl);
     this.emitSources(runId, sources, emit);
+    emit(status(runId, "Source search complete", `Fetched ${sources.length} external source results for review.`));
 
     emit(status(runId, "Ranking opportunities", `Extracting opportunities from ${sources.length} live source results.`));
+    emit(status(runId, "Opportunity model running", "Scoring fit, risk, source specificity, and draft usefulness."));
     const opportunities = await extractLiveOpportunities({
       websiteUrl: input.websiteUrl,
       profileFields: plan.profileFields,
