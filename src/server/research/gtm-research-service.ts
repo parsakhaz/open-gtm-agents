@@ -250,14 +250,35 @@ Ignore vendor blogs, SEO articles, marketing pages, homepages, pricing pages, an
     const searched = await searchWeb(externalQuery, liveSearchResultCount(), {
       fallback: "throw",
     });
+    const rankedSearchResults = rankLiveSources(searched, excludedDomain);
+    const searchCandidates = rankedSearchResults.filter(
+      (source) => (source.qualityScore ?? 0) >= liveSourceMinScore(),
+    );
     const fetched = await fetchUrlContent(
-      searched.slice(0, liveFetchResultCount()).map((source) => source.url),
+      searchCandidates.slice(0, liveFetchResultCount()).map((source) => source.url),
       { fallback: "throw" },
     );
-    return mergeSources(searched, fetched).filter((source) => {
-      if (!excludedDomain) return true;
-      return hostnameForSearch(source.url) !== excludedDomain;
+    const ranked = rankLiveSources(mergeSources(rankedSearchResults, fetched), excludedDomain)
+      .filter((source) => (source.qualityScore ?? 0) >= liveSourceMinScore())
+      .slice(0, liveSearchResultCount());
+
+    debugLog("gtm-research", "live source quality filter", {
+      searched: searched.length,
+      candidates: searchCandidates.length,
+      fetched: fetched.length,
+      kept: ranked.length,
+      minScore: liveSourceMinScore(),
+      maxResults: liveSearchResultCount(),
+      excludedDomain,
+      keptSources: ranked.map((source) => ({
+        source: source.source,
+        score: source.qualityScore,
+        url: source.url,
+        reasons: source.qualityReasons?.slice(0, 3),
+      })),
     });
+
+    return ranked;
   }
 
   private emitSources(
@@ -359,6 +380,10 @@ function liveFetchResultCount() {
   return numberEnv("RESEARCH_LIVE_FETCH_RESULTS", 6);
 }
 
+function liveSourceMinScore() {
+  return numberEnv("RESEARCH_LIVE_SOURCE_MIN_SCORE", 70);
+}
+
 function numberEnv(name: string, fallback: number) {
   const value = Number(process.env[name]);
   return Number.isFinite(value) && value > 0 ? value : fallback;
@@ -381,12 +406,93 @@ function mergeSources(
     byUrl.set(source.url, source);
   }
   for (const source of fetched) {
+    const existing = byUrl.get(source.url);
     byUrl.set(source.url, {
-      ...(byUrl.get(source.url) ?? source),
+      ...(existing ?? source),
       ...source,
+      qualityScore: source.qualityScore ?? existing?.qualityScore,
+      qualityReasons: source.qualityReasons ?? existing?.qualityReasons,
     });
   }
   return Array.from(byUrl.values());
+}
+
+function rankLiveSources(sources: SourceReference[], excludedDomain?: string) {
+  return sources
+    .map((source) => scoreLiveSource(source, excludedDomain))
+    .filter((source) => !excludedDomain || hostnameForSearch(source.url) !== excludedDomain)
+    .sort((a, b) => (b.qualityScore ?? 0) - (a.qualityScore ?? 0));
+}
+
+function scoreLiveSource(source: SourceReference, excludedDomain?: string): SourceReference {
+  const text = `${source.title} ${source.snippet} ${source.fetchedContent ?? ""}`.toLowerCase();
+  const hostname = hostnameForSearch(source.url);
+  const path = pathForScore(source.url);
+  const surface = `${hostname} ${path} ${source.title}`.toLowerCase();
+  const reasons: string[] = [];
+  let score = source.qualityScore ?? 45;
+
+  if (source.qualityScore != null) {
+    reasons.push(`Exa relevance ${source.qualityScore}`);
+  }
+
+  if (source.source === "reddit" || source.source === "hacker_news") {
+    score += 24;
+    reasons.push("community discussion");
+  } else if (source.source === "github") {
+    score += 16;
+    reasons.push("developer discussion");
+  } else if (source.source === "x") {
+    score += 12;
+    reasons.push("social post");
+  }
+
+  const hasConversationSurface =
+    /(forum|community|discussion|comments|thread|question|answers?|issue|review|reddit|hacker news|salongeek|news\.ycombinator|github)/i.test(surface);
+
+  if (hasConversationSurface) {
+    score += 18;
+    reasons.push("conversation surface");
+  }
+
+  if (/(i |we |my |our |anyone|recommend|struggling|problem|help|can't|cannot|missed|voicemail|receptionist|booking|calls?|clients?)/i.test(text)) {
+    score += 14;
+    reasons.push("operator pain language");
+  }
+
+  if (/(blog|pricing|features|product|homepage|landing|demo|signup|contact|services|solutions)/i.test(path)) {
+    score -= 18;
+    reasons.push("marketing page signal");
+  }
+
+  if (source.source === "web" && !hasConversationSurface) {
+    score -= 22;
+    reasons.push("not an obvious conversation source");
+  }
+
+  if (/(vendor|platform|software|ai receptionist|answering service)/i.test(`${hostname} ${text}`) && source.source === "web") {
+    score -= 8;
+    reasons.push("possible vendor content");
+  }
+
+  if (excludedDomain && hostname === excludedDomain) {
+    score = 0;
+    reasons.push("submitted domain excluded");
+  }
+
+  return {
+    ...source,
+    qualityScore: Math.max(0, Math.min(100, Math.round(score))),
+    qualityReasons: [...new Set([...(source.qualityReasons ?? []), ...reasons])],
+  };
+}
+
+function pathForScore(url: string) {
+  try {
+    return new URL(url).pathname.toLowerCase();
+  } catch {
+    return url.toLowerCase();
+  }
 }
 
 export const gtmResearchService = new GTMResearchService();

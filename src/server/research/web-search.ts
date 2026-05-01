@@ -7,12 +7,15 @@ type ExaSearchResult = {
   title?: string;
   url: string;
   highlights?: string[];
+  score?: number;
+  publishedDate?: string;
 };
 
 type ExaContentsResult = {
   title?: string;
   url: string;
   text?: string;
+  publishedDate?: string;
 };
 
 type WebSearchOptions = {
@@ -71,10 +74,13 @@ export async function searchWeb(
         const data = (await response.json()) as { results?: ExaSearchResult[] };
         const results = (data.results ?? []).map((result) => ({
           id: crypto.randomUUID(),
-          source: "web" as const,
+          source: sourceIdForUrl(result.url),
           title: result.title || "Untitled",
           url: result.url,
           snippet: result.highlights?.join(" ") || "",
+          publishedAt: result.publishedDate,
+          qualityScore: normalizedExaScore(result.score),
+          qualityReasons: result.score == null ? [] : [`Exa score ${result.score.toFixed(3)}`],
         }));
 
         debugLog("exa", "search response", {
@@ -139,11 +145,12 @@ export async function fetchUrlContent(
         const data = (await response.json()) as { results?: ExaContentsResult[] };
         const results = (data.results ?? []).map((result) => ({
           id: crypto.randomUUID(),
-          source: "web" as const,
+          source: sourceIdForUrl(result.url),
           title: result.title || "Untitled",
           url: result.url,
           snippet: result.text?.slice(0, 500) || "",
           fetchedContent: result.text,
+          publishedAt: result.publishedDate,
         }));
 
         debugLog("exa", "contents response", {
@@ -162,4 +169,23 @@ export async function fetchUrlContent(
     }, "warn");
     return [];
   }
+}
+
+function sourceIdForUrl(url: string): SourceReference["source"] {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, "");
+    if (hostname === "reddit.com" || hostname.endsWith(".reddit.com")) return "reddit";
+    if (hostname === "news.ycombinator.com") return "hacker_news";
+    if (hostname === "github.com" || hostname.endsWith(".github.com")) return "github";
+    if (hostname === "x.com" || hostname === "twitter.com") return "x";
+  } catch {
+    return "web";
+  }
+
+  return "web";
+}
+
+function normalizedExaScore(score: number | undefined) {
+  if (score == null || !Number.isFinite(score)) return undefined;
+  return Math.max(0, Math.min(100, Math.round(score * 100)));
 }

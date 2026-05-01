@@ -204,6 +204,13 @@ ${input.report?.content ?? "Use the fetched source previews and content below as
 URL rule:
 Every opportunity URL must be a specific source URL from the source list when possible. Do not use a broad homepage like reddit.com, x.com, github.com, or news.ycombinator.com if a specific thread, post, issue, discussion, or article URL is available.
 
+Quality and diversity rules:
+- Prefer real people describing a problem, asking for recommendations, comparing alternatives, or sharing an operational workaround.
+- Do not create multiple opportunity cards from the same URL unless the source contains clearly separate, high-value angles and there are no other good sources.
+- Use at least 2 distinct source URLs when the source list supports it.
+- Prefer community/forum/social/issue sources over vendor blogs, SEO articles, and product marketing pages.
+- If a source has a qualityScore or qualityReasons, use them as ranking hints, not as the only evidence.
+
 Sources:
 ${formatSources(input.sources, 6000)}`,
   });
@@ -300,6 +307,8 @@ function formatSources(sources: SourceReference[], maxChars: number) {
     .map(
       (source, index) => `[${index + 1}] ${source.title}
 URL: ${source.url}
+Source: ${source.source}
+Quality: ${source.qualityScore ?? "unscored"} ${source.qualityReasons?.length ? `(${source.qualityReasons.join("; ")})` : ""}
 Preview: ${source.fetchedContent || source.snippet}`,
     )
     .join("\n\n");

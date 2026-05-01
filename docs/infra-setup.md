@@ -39,10 +39,14 @@ OPENAI_RESEARCH_REASONING_EFFORT
 RESEARCH_LIVE_QUERY_COUNT
 RESEARCH_LIVE_SEARCH_RESULTS
 RESEARCH_LIVE_FETCH_RESULTS
+RESEARCH_LIVE_SOURCE_MIN_SCORE
 ```
 
 Defaults: `RESEARCH_LIVE_QUERY_COUNT=3`,
-`RESEARCH_LIVE_SEARCH_RESULTS=8`, and `RESEARCH_LIVE_FETCH_RESULTS=6`.
+`RESEARCH_LIVE_SEARCH_RESULTS=8`, `RESEARCH_LIVE_FETCH_RESULTS=6`, and
+`RESEARCH_LIVE_SOURCE_MIN_SCORE=70`. The search/fetch counts are maximums;
+Real Mode ranks sources by quality and may show fewer results when low-quality
+vendor/blog/marketing pages are filtered out.
 
 Dry Run intentionally falls back to seeded demo output when provider keys are
 missing. Real Mode requires provider credentials and surfaces provider failures

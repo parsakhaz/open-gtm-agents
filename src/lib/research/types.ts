@@ -35,6 +35,8 @@ export type SourceReference = {
   snippet: string;
   fetchedContent?: string;
   publishedAt?: string;
+  qualityScore?: number;
+  qualityReasons?: string[];
 };
 
 export type OpportunityEvidence = {
