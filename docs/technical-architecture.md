@@ -320,6 +320,8 @@ Implemented:
 - Seeded and OpenAI-backed research service with NDJSON API route.
 - Homepage Dry Run / Real Mode toggle.
 - Real Mode uses Exa contents/search plus structured OpenAI calls to stream live profile fields, source results, search angles, and opportunity cards.
+- Real Mode reuses the Dry Run visual shell but parameterizes the preview by submitted URL/site name and shows neutral placeholders until live profile fields arrive.
+- The live profile event mapper paces field reveals through the Dry Run website-section sequence so the iframe scroll and stepper advance progressively.
 - Provider and agent calls retry up to three immediate attempts and log redacted provider timing/details.
 - OpenAI-backed web researcher smoke test saved at [research/2026-04-30-web-nextjs-turbopack.md](research/2026-04-30-web-nextjs-turbopack.md).
 - Local browser companion relay, generic browser mission service, and dry-run Post now integration.

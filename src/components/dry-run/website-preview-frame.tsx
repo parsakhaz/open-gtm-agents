@@ -20,20 +20,32 @@ export function WebsitePreviewFrame({
   activeSection,
   scroll,
   locked,
+  url = demoUrl,
+  siteName,
+  isDemo = true,
+  sections,
 }: {
   activeSection: string;
   scroll: number;
   locked: boolean;
+  url?: string;
+  siteName?: string;
+  isDemo?: boolean;
+  sections?: typeof schemaSections;
 }) {
   const activeIndex = Math.max(
     0,
     websiteSections.findIndex((section) => section.id === activeSection),
   );
   const learningSections = schemaSections.slice(0, websiteSections.length);
+  const visibleSections = isDemo ? learningSections : schemaSectionsForLive(learningSections, sections, siteName);
   const activePageId = useMemo(() => pageIdForSection(activeSection), [activeSection]);
   const [reloadKey, setReloadKey] = useState(0);
-  const activePage = agentPages.find((page) => page.id === activePageId) ?? agentPages[0];
-  const iframeUrl = `${demoUrl}${reloadKey > 0 ? `?reload=${reloadKey}` : ""}`;
+  const activePage = isDemo
+    ? agentPages.find((page) => page.id === activePageId) ?? agentPages[0]
+    : { id: "live", label: siteName ?? hostnameForDisplay(url), url };
+  const iframeUrl = `${activePage.url}${reloadKey > 0 ? `${activePage.url.includes("?") ? "&" : "?"}reload=${reloadKey}` : ""}`;
+  const displayName = siteName ?? hostnameForDisplay(activePage.url);
   const agentOffset = Math.round((Math.min(100, Math.max(0, scroll)) / 100) * 980);
 
   return (
@@ -86,7 +98,7 @@ export function WebsitePreviewFrame({
             <div className="h-[2200px] w-[1440px] origin-top-left scale-[0.62]">
               <iframe
                 src={iframeUrl}
-                title="Salon Agent live website preview"
+                title={`${displayName} website preview`}
                 className="h-full w-full border-0 bg-white"
                 loading="eager"
                 referrerPolicy="no-referrer-when-downgrade"
@@ -110,10 +122,12 @@ export function WebsitePreviewFrame({
 
       <div className="relative w-full max-w-[360px] justify-self-center">
         <p className="mb-6 text-pretty text-sm leading-6 text-[#6e5a55] italic">
-          &ldquo;Most salons don&apos;t lose clients. They just couldn&apos;t answer the phone.&rdquo;
+          {isDemo
+            ? "“Most salons don't lose clients. They just couldn't answer the phone.”"
+            : `Reading ${displayName} and turning the page into GTM context.`}
         </p>
         <div className="space-y-4">
-          {learningSections.map((section, index) => {
+          {visibleSections.map((section, index) => {
             const matchingWebsiteSection = websiteSections[index];
             const isActive = locked && matchingWebsiteSection?.id === activeSection;
             const isDone = !locked || index < activeIndex;
@@ -165,6 +179,30 @@ export function WebsitePreviewFrame({
       </div>
     </div>
   );
+}
+
+function schemaSectionsForLive(
+  fallbackSections: typeof schemaSections,
+  liveSections: typeof schemaSections | undefined,
+  siteName?: string,
+) {
+  return fallbackSections.map((section, index) => ({
+    ...(liveSections?.[index] ?? section),
+    label: liveSections?.[index]?.label ?? section.label,
+    answer:
+      liveSections?.[index]?.answer ??
+      (section.id === "summary"
+        ? `Reading ${siteName ?? "this site"} and extracting the product promise.`
+        : "Waiting for live GTM analysis..."),
+  }));
+}
+
+function hostnameForDisplay(value: string) {
+  try {
+    return new URL(value).hostname.replace(/^www\./, "");
+  } catch {
+    return value.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+  }
 }
 
 function pageIdForSection(sectionId: string) {

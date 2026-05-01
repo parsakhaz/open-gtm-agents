@@ -128,6 +128,8 @@ export default function Home() {
                     step={state.onboardingStep ?? "connecting"}
                     visibleIds={state.schemaIds}
                     sections={liveSchemaSections}
+                    siteName={siteName}
+                    isDemo={runMode === "dry"}
                   />
                 </div>
                 <motion.div
@@ -145,6 +147,10 @@ export default function Home() {
                       activeSection={state.activeWebsiteSection}
                       scroll={state.websiteScroll}
                       locked={gate !== "profile"}
+                      url={url}
+                      siteName={siteName}
+                      isDemo={runMode === "dry"}
+                      sections={liveSchemaSections}
                     />
                   </div>
                   {state.schemaIds.length > 0 && (
@@ -988,10 +994,14 @@ function ConnectingPanel({
   step,
   visibleIds,
   sections,
+  siteName = "salonagent.ai",
+  isDemo = true,
 }: {
   step: "connecting" | "trust" | "content" | "analysis";
   visibleIds: string[];
   sections?: typeof schemaSections;
+  siteName?: string;
+  isDemo?: boolean;
 }) {
   const activeSections = sections?.length ? sections : schemaSections;
   const steps = [
@@ -1014,9 +1024,9 @@ function ConnectingPanel({
               <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm">
                 <Radar className="h-6 w-6 text-[#2e8b64]" />
               </div>
-              <h2 className="text-3xl font-semibold tracking-normal">salonagent.ai</h2>
+              <h2 className="text-3xl font-semibold tracking-normal">{siteName}</h2>
               <p className="mt-2 text-xs text-muted-foreground">
-                {step === "connecting" && "Connecting to salonagent.ai"}
+                {step === "connecting" && `Connecting to ${siteName}`}
                 {step === "trust" && "Checking trust signals"}
                 {step === "content" && "Preparing content for analysis"}
               </p>
@@ -1025,7 +1035,9 @@ function ConnectingPanel({
 
           <div className="relative w-full max-w-[360px] justify-self-center">
             <p className="mb-6 text-pretty text-sm leading-6 text-[#6e5a55] italic">
-              &ldquo;Most salons don&apos;t lose clients. They just couldn&apos;t answer the phone.&rdquo;
+              {isDemo
+                ? "“Most salons don't lose clients. They just couldn't answer the phone.”"
+                : `Reading ${siteName} and turning the page into GTM context.`}
             </p>
             <div className="space-y-5">
               {steps.map((item, index) => {

@@ -211,6 +211,8 @@ It includes:
 - Streamed comment opportunities, original post ideas, and competitive insights
 - Dry Run / Real Mode toggle on the homepage
 - Real Mode streams live Exa-backed GTM profile, source, search, and opportunity events through `/api/research/run`
+- Real Mode uses the submitted site's URL, favicon, hostname, iframe preview, and live/neutral GTM copy in onboarding instead of SalonAgent-specific dry-run text
+- Real Mode paces profile reveals through the same website-reading sequence as Dry Run so the iframe scroll, stepper, and schema panel feel progressive
 - Focused review deck with rewrite/copy/open actions
 - Seeded and OpenAI-backed research API route
 - Local browser companion flow for approved browser missions and dry-run Post now actions
