@@ -16,6 +16,7 @@ export type ResearchRunRequest = {
   websiteUrl: string;
   mode: ResearchMode;
   objective: ResearchObjective;
+  scanDays?: number;
 };
 
 export type GTMProfileField = {

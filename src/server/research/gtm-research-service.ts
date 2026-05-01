@@ -41,6 +41,7 @@ export class GTMResearchService {
       model,
       metadata: {
         promptVersion: RESEARCH_PROMPT_VERSION,
+        scanDays: scanDaysForInput(input),
       },
     });
     const startedAt = Date.now();
@@ -56,6 +57,7 @@ export class GTMResearchService {
       objective: input.objective,
       mode: input.mode,
       model,
+      scanDays: scanDaysForInput(input),
     });
 
     try {
@@ -172,6 +174,7 @@ export class GTMResearchService {
       websiteUrl: input.websiteUrl,
       websiteSources,
       model,
+      scanDays: scanDaysForInput(input),
     });
     emit(status(runId, "GTM profile ready", `Generated ${plan.profileFields.length} live profile fields and ${plan.searches.length} search missions.`));
 
@@ -185,8 +188,8 @@ export class GTMResearchService {
     }
 
     emit(status(runId, "Researching conversations", "Searching and fetching source content for the live opportunity queue."));
-    emit(status(runId, "Source search running", "Looking for real discussions, threads, issues, and community posts."));
-    const sources = await this.fetchLiveSources(plan.searches, input.websiteUrl);
+    emit(status(runId, "Source search running", `Looking for real discussions, threads, issues, and community posts from the last ${scanDaysForInput(input)} days.`));
+    const sources = await this.fetchLiveSources(plan.searches, input.websiteUrl, scanDaysForInput(input));
     this.emitSources(runId, sources, emit);
     emit(status(runId, "Source search complete", `Fetched ${sources.length} external source results for review.`));
 
@@ -198,6 +201,7 @@ export class GTMResearchService {
       searches: plan.searches,
       sources,
       model,
+      scanDays: scanDaysForInput(input),
     });
 
     emit(status(runId, "Drafting responses", "Preparing source-backed drafts for human review."));
@@ -233,42 +237,55 @@ export class GTMResearchService {
     });
   }
 
-  private async fetchLiveSources(searches: SourceSearch[], websiteUrl?: string) {
+  private async fetchLiveSources(searches: SourceSearch[], websiteUrl?: string, scanDays = 14) {
     const excludedDomain = websiteUrl ? hostnameForSearch(websiteUrl) : undefined;
-    const query = searches
-      .slice(0, liveSearchQueryCount())
-      .map((search) => search.query)
-      .join("\n");
-    const externalQuery = excludedDomain
-      ? `${query}
-Prioritize real posts and discussions from Reddit, Hacker News, X/Twitter, LinkedIn, GitHub discussions/issues, forums, Q&A sites, and review/community threads.
-Ignore vendor blogs, SEO articles, marketing pages, homepages, pricing pages, and product pages unless they are clearly competitor comparison evidence.
-Exclude results from ${excludedDomain}.`
-      : `${query}
-Prioritize real posts and discussions from Reddit, Hacker News, X/Twitter, LinkedIn, GitHub discussions/issues, forums, Q&A sites, and review/community threads.
-Ignore vendor blogs, SEO articles, marketing pages, homepages, pricing pages, and product pages unless they are clearly competitor comparison evidence.`;
-    const searched = await searchWeb(externalQuery, liveSearchResultCount(), {
-      fallback: "throw",
+    const startPublishedDate = startPublishedDateForScan(scanDays);
+    const selectedSearches = searches.slice(0, liveSearchQueryCount());
+    const searchedGroups = await runSourceSearches(selectedSearches, {
+      excludedDomain,
+      scanDays,
+      startPublishedDate,
+      useDomainFilters: true,
     });
-    const rankedSearchResults = rankLiveSources(searched, excludedDomain);
+    const searched = mergeSources(searchedGroups.flat(), []);
+    const firstPassCandidates = rankLiveSources(searched, excludedDomain).filter(
+      (source) => (source.qualityScore ?? 0) >= liveSourceMinScore(),
+    );
+    const broadGroups =
+      firstPassCandidates.length < liveMinimumSourceCandidates()
+        ? await runSourceSearches(selectedSearches, {
+            excludedDomain,
+            scanDays,
+            startPublishedDate,
+            useDomainFilters: false,
+          })
+        : [];
+    const allSearched = mergeSources([...searchedGroups.flat(), ...broadGroups.flat()], []);
+    const rankedSearchResults = rankLiveSources(allSearched, excludedDomain);
     const searchCandidates = rankedSearchResults.filter(
       (source) => (source.qualityScore ?? 0) >= liveSourceMinScore(),
     );
-    const fetched = await fetchUrlContent(
-      searchCandidates.slice(0, liveFetchResultCount()).map((source) => source.url),
-      { fallback: "throw" },
-    );
+    const urlsToFetch = searchCandidates
+      .slice(0, liveFetchResultCount())
+      .map((source) => source.url);
+    const fetched = urlsToFetch.length
+      ? await fetchUrlContent(urlsToFetch, { fallback: "throw" })
+      : [];
     const ranked = rankLiveSources(mergeSources(rankedSearchResults, fetched), excludedDomain)
       .filter((source) => (source.qualityScore ?? 0) >= liveSourceMinScore())
       .slice(0, liveSearchResultCount());
 
     debugLog("gtm-research", "live source quality filter", {
-      searched: searched.length,
+      searched: allSearched.length,
+      searchedMissions: selectedSearches.length,
+      usedBroadFallback: broadGroups.length > 0,
       candidates: searchCandidates.length,
       fetched: fetched.length,
       kept: ranked.length,
       minScore: liveSourceMinScore(),
       maxResults: liveSearchResultCount(),
+      scanDays,
+      startPublishedDate,
       excludedDomain,
       keptSources: ranked.map((source) => ({
         source: source.source,
@@ -299,6 +316,46 @@ Ignore vendor blogs, SEO articles, marketing pages, homepages, pricing pages, an
       });
     }
   }
+}
+
+async function runSourceSearches(
+  searches: SourceSearch[],
+  options: {
+    excludedDomain?: string;
+    scanDays: number;
+    startPublishedDate: string;
+    useDomainFilters: boolean;
+  },
+) {
+  const settled = await Promise.allSettled(
+    searches.map((search) => {
+      const externalQuery = options.excludedDomain
+        ? `${search.query}
+Prioritize real posts and discussions from Reddit, Hacker News, X/Twitter, LinkedIn, GitHub discussions/issues, forums, Q&A sites, and review/community threads.
+Ignore vendor blogs, SEO articles, marketing pages, homepages, pricing pages, and product pages unless they are clearly competitor comparison evidence.
+Prefer posts from the last ${options.scanDays} days and avoid stale discussions that would feel awkward to comment on now.
+Exclude results from ${options.excludedDomain}.`
+        : `${search.query}
+Prioritize real posts and discussions from Reddit, Hacker News, X/Twitter, LinkedIn, GitHub discussions/issues, forums, Q&A sites, and review/community threads.
+Ignore vendor blogs, SEO articles, marketing pages, homepages, pricing pages, and product pages unless they are clearly competitor comparison evidence.
+Prefer posts from the last ${options.scanDays} days and avoid stale discussions that would feel awkward to comment on now.`;
+      return searchWeb(externalQuery, liveSearchResultCount(), {
+        fallback: "throw",
+        startPublishedDate: options.startPublishedDate,
+        includeDomains: options.useDomainFilters ? includeDomainsForSource(search.source) : undefined,
+        excludeDomains: options.excludedDomain ? [options.excludedDomain] : undefined,
+      });
+    }),
+  );
+
+  return settled.flatMap((result) => {
+    if (result.status === "fulfilled") return [result.value];
+    debugLog("gtm-research", "live source search failed", {
+      error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+      useDomainFilters: options.useDomainFilters,
+    }, "warn");
+    return [];
+  });
 }
 
 function profileFieldsFor(websiteUrl: string): GTMProfileField[] {
@@ -384,6 +441,22 @@ function liveSourceMinScore() {
   return numberEnv("RESEARCH_LIVE_SOURCE_MIN_SCORE", 70);
 }
 
+function liveMinimumSourceCandidates() {
+  return numberEnv("RESEARCH_LIVE_MIN_CANDIDATES", 3);
+}
+
+function scanDaysForInput(input: ResearchRunRequest) {
+  return Number.isInteger(input.scanDays) && input.scanDays && input.scanDays > 0
+    ? input.scanDays
+    : 14;
+}
+
+function startPublishedDateForScan(scanDays: number) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() - scanDays);
+  return date.toISOString();
+}
+
 function numberEnv(name: string, fallback: number) {
   const value = Number(process.env[name]);
   return Number.isFinite(value) && value > 0 ? value : fallback;
@@ -395,6 +468,14 @@ function hostnameForSearch(url: string) {
   } catch {
     return url.replace(/^www\./, "");
   }
+}
+
+function includeDomainsForSource(source: SourceSearch["source"]) {
+  if (source === "reddit") return ["reddit.com"];
+  if (source === "hacker_news") return ["news.ycombinator.com"];
+  if (source === "github") return ["github.com"];
+  if (source === "x") return ["x.com", "twitter.com"];
+  return undefined;
 }
 
 function mergeSources(

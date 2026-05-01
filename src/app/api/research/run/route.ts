@@ -105,13 +105,26 @@ function parseResearchRunRequest(value: unknown): ResearchRunRequest {
     );
   }
 
+  const scanDays = parseScanDays(value.scanDays);
+
   return {
     websiteUrl,
     mode: mode as ResearchMode,
     objective: objective as ResearchObjective,
+    scanDays,
   };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseScanDays(value: unknown) {
+  if (value == null || value === "") return 14;
+  const scanDays = Number(value);
+  if (!Number.isInteger(scanDays) || scanDays < 1 || scanDays > 365) {
+    throw new Error("scanDays must be an integer between 1 and 365.");
+  }
+
+  return scanDays;
 }

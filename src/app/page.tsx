@@ -18,6 +18,7 @@ import {
   RefreshCcw,
   Scissors,
   Search,
+  CalendarDays,
   Target,
   Users,
 } from "lucide-react";
@@ -53,8 +54,9 @@ export default function Home() {
   const [url, setUrl] = useState(demoUrl);
   const [isRunning, setIsRunning] = useState(false);
   const [runMode, setRunMode] = useState<RunMode>("dry");
+  const [scanDays, setScanDays] = useState(14);
   const dryRun = useDryRun(isRunning && runMode === "dry");
-  const realRun = useRealResearchRun({ url, isRunning: isRunning && runMode === "real" });
+  const realRun = useRealResearchRun({ url, scanDays, isRunning: isRunning && runMode === "real" });
   const activeRun = runMode === "dry" ? dryRun : realRun;
   const { state, progress, gate, proceed } = activeRun;
   const liveSchemaSections = runMode === "real" ? realRun.schemaSections : undefined;
@@ -114,7 +116,12 @@ export default function Home() {
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </form>
-                  <RunModeToggle value={runMode} onChange={setRunMode} />
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <RunModeToggle value={runMode} onChange={setRunMode} />
+                    {runMode === "real" && (
+                      <ScanWindowSelect value={scanDays} onChange={setScanDays} />
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -987,6 +994,34 @@ function RunModeToggle({
         </button>
       ))}
     </div>
+  );
+}
+
+function ScanWindowSelect({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const options = [1, 7, 14, 30, 90];
+
+  return (
+    <label className="flex h-11 items-center gap-2 rounded-md border bg-white px-3 text-sm font-semibold shadow-sm">
+      <CalendarDays className="h-4 w-4 text-muted-foreground" />
+      <span className="text-muted-foreground">Scan last</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="h-8 rounded-sm border bg-background px-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-ring"
+      >
+        {options.map((days) => (
+          <option key={days} value={days}>
+            {days} {days === 1 ? "day" : "days"}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

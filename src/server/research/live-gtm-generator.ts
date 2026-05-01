@@ -143,6 +143,7 @@ export async function generateLiveGtmPlan(input: {
   websiteUrl: string;
   websiteSources: SourceReference[];
   model: string;
+  scanDays?: number;
 }): Promise<LiveGtmPlan> {
   const content = await callStructuredOpenAI({
     model: input.model,
@@ -153,6 +154,8 @@ export async function generateLiveGtmPlan(input: {
     userPrompt: `Build a GTM profile and broad external research missions for this website.
 
 Act like a senior GTM researcher. Each search query should be a concise external research mission, not a brittle exact keyword query. Give the web researcher room to explore buyer pain, competitors, alternatives, community discussions, and operational intent.
+
+Freshness window: prioritize opportunities from the last ${input.scanDays ?? 14} days. Search missions should make sense for finding fresh posts that are still natural to reply to.
 
 Prioritize real people and comment opportunities from Reddit, Hacker News, X/Twitter, LinkedIn, GitHub discussions/issues, forums, Q&A sites, and review/community threads. Avoid vendor blogs, marketing pages, homepages, pricing pages, SEO articles, and product pages unless the mission is explicitly competitive comparison. Do not search the submitted website itself. Do not include the product brand name unless the mission is explicitly competitive/review research. Do not use site: queries for the submitted domain.
 
@@ -181,6 +184,7 @@ export async function extractLiveOpportunities(input: {
   report?: VerifiedResearchReport;
   sources: SourceReference[];
   model: string;
+  scanDays?: number;
 }): Promise<ResearchOpportunity[]> {
   const content = await callStructuredOpenAI({
     model: input.model,
@@ -206,8 +210,9 @@ Every opportunity URL must be a specific source URL from the source list when po
 
 Quality and diversity rules:
 - Prefer real people describing a problem, asking for recommendations, comparing alternatives, or sharing an operational workaround.
+- Prefer fresh threads/posts from the last ${input.scanDays ?? 14} days. Avoid old/stale posts unless the source list has no better fresh opportunities.
 - Do not create multiple opportunity cards from the same URL unless the source contains clearly separate, high-value angles and there are no other good sources.
-- Use at least 2 distinct source URLs when the source list supports it.
+- Use at least 3 distinct source URLs when the source list supports it. If there are 3 or more eligible source URLs, return at least 3 opportunities.
 - Prefer community/forum/social/issue sources over vendor blogs, SEO articles, and product marketing pages.
 - If a source has a qualityScore or qualityReasons, use them as ranking hints, not as the only evidence.
 
@@ -216,7 +221,9 @@ ${formatSources(input.sources, 6000)}`,
   });
 
   const parsed = JSON.parse(content) as { opportunities: ResearchOpportunity[] };
-  return parsed.opportunities.map((opportunity) => normalizeOpportunity(opportunity, input.sources));
+  return dedupeOpportunitiesByUrl(
+    parsed.opportunities.map((opportunity) => normalizeOpportunity(opportunity, input.sources)),
+  );
 }
 
 async function callStructuredOpenAI(input: {
@@ -308,6 +315,7 @@ function formatSources(sources: SourceReference[], maxChars: number) {
       (source, index) => `[${index + 1}] ${source.title}
 URL: ${source.url}
 Source: ${source.source}
+Published: ${source.publishedAt ?? "unknown"}
 Quality: ${source.qualityScore ?? "unscored"} ${source.qualityReasons?.length ? `(${source.qualityReasons.join("; ")})` : ""}
 Preview: ${source.fetchedContent || source.snippet}`,
     )
@@ -375,6 +383,31 @@ function normalizeOpportunity(
       direct: opportunity.variants.direct || opportunity.draft,
     },
   };
+}
+
+function dedupeOpportunitiesByUrl(opportunities: ResearchOpportunity[]) {
+  const byUrl = new Map<string, ResearchOpportunity>();
+
+  for (const opportunity of opportunities) {
+    const key = canonicalOpportunityUrl(opportunity.url);
+    const existing = byUrl.get(key);
+    if (!existing || opportunity.fitScore - opportunity.riskScore > existing.fitScore - existing.riskScore) {
+      byUrl.set(key, opportunity);
+    }
+  }
+
+  return Array.from(byUrl.values()).slice(0, 5);
+}
+
+function canonicalOpportunityUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    parsed.hash = "";
+    parsed.search = "";
+    return parsed.toString().replace(/\/+$/, "");
+  } catch {
+    return url.trim().toLowerCase();
+  }
 }
 
 function isSpecificUrl(url: string) {

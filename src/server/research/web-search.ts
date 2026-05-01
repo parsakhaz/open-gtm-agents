@@ -20,6 +20,9 @@ type ExaContentsResult = {
 
 type WebSearchOptions = {
   fallback?: "seeded" | "throw";
+  startPublishedDate?: string;
+  includeDomains?: string[];
+  excludeDomains?: string[];
 };
 
 export async function searchWeb(
@@ -47,7 +50,13 @@ export async function searchWeb(
     return await withProviderRetry(
       { provider: "Exa", operation: "search" },
       async () => {
-        debugLog("exa", "search request", { query, maxResults });
+        debugLog("exa", "search request", {
+          query,
+          maxResults,
+          startPublishedDate: options.startPublishedDate,
+          includeDomains: options.includeDomains,
+          excludeDomains: options.excludeDomains,
+        });
         const response = await fetch("https://api.exa.ai/search", {
           method: "POST",
           headers: {
@@ -57,6 +66,9 @@ export async function searchWeb(
           body: JSON.stringify({
             query,
             numResults: maxResults,
+            startPublishedDate: options.startPublishedDate,
+            includeDomains: options.includeDomains,
+            excludeDomains: options.excludeDomains,
             contents: {
               highlights: {
                 numSentences: 3,
@@ -86,6 +98,9 @@ export async function searchWeb(
         debugLog("exa", "search response", {
           query,
           resultCount: results.length,
+          startPublishedDate: options.startPublishedDate,
+          includeDomains: options.includeDomains,
+          excludeDomains: options.excludeDomains,
           durationMs: durationMs(startedAt),
         });
         return results;

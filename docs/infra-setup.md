@@ -40,13 +40,17 @@ RESEARCH_LIVE_QUERY_COUNT
 RESEARCH_LIVE_SEARCH_RESULTS
 RESEARCH_LIVE_FETCH_RESULTS
 RESEARCH_LIVE_SOURCE_MIN_SCORE
+RESEARCH_LIVE_MIN_CANDIDATES
 ```
 
 Defaults: `RESEARCH_LIVE_QUERY_COUNT=3`,
 `RESEARCH_LIVE_SEARCH_RESULTS=8`, `RESEARCH_LIVE_FETCH_RESULTS=6`, and
-`RESEARCH_LIVE_SOURCE_MIN_SCORE=70`. The search/fetch counts are maximums;
-Real Mode ranks sources by quality and may show fewer results when low-quality
-vendor/blog/marketing pages are filtered out.
+`RESEARCH_LIVE_SOURCE_MIN_SCORE=70`. Real Mode also defaults to a 14-day scan
+window from the UI and API request. The search/fetch counts are maximums; Real
+Mode ranks sources by quality and may show fewer results when low-quality,
+stale, vendor/blog/marketing pages are filtered out. Platform-specific missions
+first search their matching domains, then use a same-recency broad fallback when
+fewer than `RESEARCH_LIVE_MIN_CANDIDATES=3` quality candidates are found.
 
 Dry Run intentionally falls back to seeded demo output when provider keys are
 missing. Real Mode requires provider credentials and surfaces provider failures

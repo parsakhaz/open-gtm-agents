@@ -15,6 +15,7 @@ import {
 type UseRealResearchRunInput = {
   url: string;
   isRunning: boolean;
+  scanDays?: number;
 };
 
 const initialState: VisibleState = {
@@ -67,7 +68,7 @@ const profileStepDelayMs = 3500;
 const opportunityRevealDelayMs = 520;
 const pendingTickMs = profileStepDelayMs;
 
-export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) {
+export function useRealResearchRun({ url, isRunning, scanDays = 14 }: UseRealResearchRunInput) {
   const [state, setState] = useState<VisibleState>(initialState);
   const [progress, setProgress] = useState(0);
   const [schemaSections, setSchemaSections] = useState<SchemaSection[]>([]);
@@ -122,6 +123,7 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
           websiteUrl: url,
           mode: "live",
           objective: "opportunity_discovery",
+          scanDays,
         };
         const response = await fetch("/api/research/run", {
           method: "POST",
@@ -580,7 +582,7 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
       proceedRef.current = null;
       wakePresenter?.();
     };
-  }, [isRunning, url]);
+  }, [isRunning, scanDays, url]);
 
   return useMemo(
     () => ({

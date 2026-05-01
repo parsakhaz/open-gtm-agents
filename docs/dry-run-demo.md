@@ -342,6 +342,8 @@ Current state:
 - Real Mode enters the browser preview quickly and uses honest pending stepper motion while Exa/OpenAI provider calls are still running. Final GTM profile, source, and opportunity content still comes from live provider output.
 - Real Mode logs client receive/reveal/gate timing in development with the `real-research-ui` prefix so provider latency can be distinguished from UI pacing or a user-held gate.
 - Real Mode should not show SalonAgent-specific quotes, product summaries, or opportunity copy unless the submitted URL is actually SalonAgent.
+- Real Mode includes a "Scan last X days" control beside the website input. The default is 14 days, and the value is passed through `/api/research/run` to Exa as `startPublishedDate` so comment opportunities are fresh enough to interact with.
+- Real Mode source counts are treated as maximums. The live source ranker prioritizes high-scoring community, social, issue, and forum sources; filters stale/vendor/blog/marketing pages; and may show fewer cards instead of padding with weak results.
 - Live opportunities are adapted into the same review cards as the dry run, so browser-use actions continue to receive `url`, `draft`, and `opportunityId`.
 - The OpenAI-backed web researcher path has been smoke-tested with a cited research artifact at [research/2026-04-30-web-nextjs-turbopack.md](research/2026-04-30-web-nextjs-turbopack.md).
 - Browser missions now run through the local Edge/Chrome CDP relay with orchestrator, browser-agent, relay, and CDP logs. See [browser-use.md](browser-use.md).
