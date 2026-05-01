@@ -352,11 +352,11 @@ function liveSearchQueryCount() {
 }
 
 function liveSearchResultCount() {
-  return numberEnv("RESEARCH_LIVE_SEARCH_RESULTS", 4);
+  return numberEnv("RESEARCH_LIVE_SEARCH_RESULTS", 8);
 }
 
 function liveFetchResultCount() {
-  return numberEnv("RESEARCH_LIVE_FETCH_RESULTS", 3);
+  return numberEnv("RESEARCH_LIVE_FETCH_RESULTS", 6);
 }
 
 function numberEnv(name: string, fallback: number) {

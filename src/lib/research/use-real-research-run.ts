@@ -63,9 +63,9 @@ const pendingMessages: Record<Exclude<PendingStage, "done" | "error">, string> =
 
 const sourceRevealDelayMs = 420;
 const searchRevealDelayMs = 260;
-const profileRevealDelayMs = 850;
+const profileStepDelayMs = 3500;
 const opportunityRevealDelayMs = 520;
-const pendingTickMs = 1350;
+const pendingTickMs = profileStepDelayMs;
 
 export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) {
   const [state, setState] = useState<VisibleState>(initialState);
@@ -400,7 +400,7 @@ export function useRealResearchRun({ url, isRunning }: UseRealResearchRunInput) 
           activeStage: "Inferring GTM profile",
         }));
         setProgress((current) => Math.max(current, 28));
-        await sleep(profileRevealDelayMs);
+        await sleep(profileStepDelayMs);
         return;
       }
 

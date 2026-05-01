@@ -41,6 +41,9 @@ RESEARCH_LIVE_SEARCH_RESULTS
 RESEARCH_LIVE_FETCH_RESULTS
 ```
 
+Defaults: `RESEARCH_LIVE_QUERY_COUNT=3`,
+`RESEARCH_LIVE_SEARCH_RESULTS=8`, and `RESEARCH_LIVE_FETCH_RESULTS=6`.
+
 Dry Run intentionally falls back to seeded demo output when provider keys are
 missing. Real Mode requires provider credentials and surfaces provider failures
 after up to three immediate retries. OpenAI and Supabase runtime variables are
